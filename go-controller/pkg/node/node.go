@@ -23,22 +23,31 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 )
 
 // OvnNode is the object holder for utilities meant for node management
 type OvnNode struct {
 	name         string
 	Kube         kube.Interface
+	queue        workqueue.Interface
 	watchFactory *factory.WatchFactory
 }
 
 // NewNode creates a new controller for node management
-func NewNode(kubeClient kubernetes.Interface, wf *factory.WatchFactory, name string) *OvnNode {
+func NewNode(kubeClient kubernetes.Interface, name string, stopChan <-chan struct{}) (*OvnNode, error) {
+	client := &kube.Kube{KClient: kubeClient}
+	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	wf, err := factory.NewWatchFactory(client.KClient, stopChan, queue)
+	if err != nil {
+		return nil, err
+	}
 	return &OvnNode{
 		name:         name,
 		Kube:         &kube.Kube{KClient: kubeClient},
+		queue:        queue,
 		watchFactory: wf,
-	}
+	}, nil
 }
 
 func setupOVNNode(node *kapi.Node) error {

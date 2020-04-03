@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/metrics"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
@@ -44,9 +43,12 @@ type HAMasterController struct {
 }
 
 // NewHAMasterController creates a new HA Master controller
-func NewHAMasterController(kubeClient kubernetes.Interface, wf *factory.WatchFactory,
-	nodeName string, stopChan chan struct{}) *HAMasterController {
-	ovnController := NewOvnController(kubeClient, wf, stopChan)
+func NewHAMasterController(kubeClient kubernetes.Interface,
+	nodeName string, stopChan chan struct{}) (*HAMasterController, error) {
+	ovnController, err := NewOvnController(kubeClient, stopChan)
+	if err != nil {
+		return nil, err
+	}
 	return &HAMasterController{
 		kubeClient:      kubeClient,
 		ovnController:   ovnController,
@@ -55,7 +57,7 @@ func NewHAMasterController(kubeClient kubernetes.Interface, wf *factory.WatchFac
 		isLeader:        false,
 		leaderElector:   nil,
 		stopChan:        stopChan,
-	}
+	}, nil
 }
 
 // StartHAMasterController runs the replication controller

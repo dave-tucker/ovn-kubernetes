@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 	kapi "k8s.io/api/core/v1"
@@ -200,11 +199,10 @@ var _ = Describe("Node Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n := NewNode(fakeClient, f, "foobar")
+			n, err := NewNode(fakeClient, "foobar", stopChan)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(n).NotTo(BeNil())
 
 			Expect(config.OvnNorth.Address).To(Equal("tcp:1.1.1.1:6641"), "config.OvnNorth.Address does not equal cli arg")
@@ -282,11 +280,10 @@ var _ = Describe("Node Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n := NewNode(fakeClient, f, "foobar")
+			n, err := NewNode(fakeClient, "foobar", stopChan)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(n).NotTo(BeNil())
 
 			Expect(config.OvnNorth.Address).To(Equal("tcp:1.1.1.1:6641"), "config.OvnNorth.Address does not equal cli arg")
@@ -364,11 +361,10 @@ var _ = Describe("Node Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n := NewNode(fakeClient, f, "foobar")
+			n, err := NewNode(fakeClient, "foobar", stopChan)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(n).NotTo(BeNil())
 
 			Expect(config.OvnNorth.Address).To(Equal("watch-endpoint"), "config.OvnNorth.Address does not equal cli arg")

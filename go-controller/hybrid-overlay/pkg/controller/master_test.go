@@ -6,13 +6,12 @@ import (
 	"strings"
 
 	"github.com/urfave/cli"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/types"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
@@ -100,14 +99,10 @@ var _ = Describe("Hybrid SDN Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
-			defer close(stopChan)
-
-			m, err := NewMaster(fakeClient)
+			m, err := NewMaster(fakeClient, stopChan)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = m.Start(f)
+			err = m.Start()
 			Expect(err).NotTo(HaveOccurred())
 
 			// Windows node should be allocated a subnet
@@ -154,14 +149,10 @@ var _ = Describe("Hybrid SDN Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
-			defer close(stopChan)
-
-			m, err := NewMaster(fakeClient)
+			m, err := NewMaster(fakeClient, stopChan)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = m.Start(f)
+			err = m.Start()
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(fexec.CalledMatchesExpected, 2).Should(BeTrue(), fexec.ErrorDesc)
@@ -216,14 +207,10 @@ var _ = Describe("Hybrid SDN Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
-			defer close(stopChan)
-
-			m, err := NewMaster(fakeClient)
+			m, err := NewMaster(fakeClient, stopChan)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = m.Start(f)
+			err = m.Start()
 			Expect(err).NotTo(HaveOccurred())
 
 			k := &kube.Kube{KClient: fakeClient}

@@ -3,7 +3,6 @@ package ovn
 import (
 	. "github.com/onsi/gomega"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	util "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 	"github.com/urfave/cli"
@@ -20,7 +19,6 @@ const (
 
 type FakeOVN struct {
 	fakeClient *fake.Clientset
-	watcher    *factory.WatchFactory
 	controller *Controller
 	stopChan   chan struct{}
 	fakeExec   *ovntest.FakeExec
@@ -56,9 +54,8 @@ func (o *FakeOVN) init() {
 	var err error
 
 	o.stopChan = make(chan struct{})
-	o.watcher, err = factory.NewWatchFactory(o.fakeClient, o.stopChan)
-	Expect(err).NotTo(HaveOccurred())
 
-	o.controller = NewOvnController(o.fakeClient, o.watcher, o.stopChan)
+	o.controller, err = NewOvnController(o.fakeClient, o.stopChan)
+	Expect(err).NotTo(HaveOccurred())
 	o.controller.multicastSupport = true
 }

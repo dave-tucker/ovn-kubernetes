@@ -8,7 +8,6 @@ import (
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/controller"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
 	"k8s.io/klog"
@@ -62,12 +61,7 @@ func runHybridOverlay(ctx *cli.Context) error {
 	stopChan := make(chan struct{})
 	defer close(stopChan)
 
-	factory, err := factory.NewWatchFactory(clientset, stopChan)
-	if err != nil {
-		return err
-	}
-
-	if err := controller.StartHybridOverlay(false, nodeName, clientset, factory); err != nil {
+	if err := controller.StartHybridOverlay(false, nodeName, clientset, stopChan); err != nil {
 		return err
 	}
 

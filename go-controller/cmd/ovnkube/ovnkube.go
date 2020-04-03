@@ -21,7 +21,6 @@ import (
 
 	hocontroller "github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/controller"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/metrics"
 	ovnnode "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/node"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/ovn"
@@ -179,10 +178,6 @@ func runOvnKube(ctx *cli.Context) error {
 
 	// create factory and start the controllers asked for
 	stopChan := make(chan struct{})
-	factory, err := factory.NewWatchFactory(clientset, stopChan)
-	if err != nil {
-		return err
-	}
 
 	master := ctx.String("init-master")
 	node := ctx.String("init-node")
@@ -216,8 +211,11 @@ func runOvnKube(ctx *cli.Context) error {
 		// register prometheus metrics exported by the master
 		metrics.RegisterMasterMetrics()
 		// run the HA master controller to init the master
-		ovnHAController := ovn.NewHAMasterController(clientset, factory, master, stopChan)
-		if err := ovnHAController.StartHAMasterController(); err != nil {
+		ovnHAController, err := ovn.NewHAMasterController(clientset, master, stopChan)
+		if err != nil {
+			return err
+		}
+		if err = ovnHAController.StartHAMasterController(); err != nil {
 			return err
 		}
 	}
@@ -231,7 +229,10 @@ func runOvnKube(ctx *cli.Context) error {
 		// register ovn specific (ovn-controller and ovn-northd) metrics
 		metrics.RegisterOvnMetrics()
 		start := time.Now()
-		n := ovnnode.NewNode(clientset, factory, node)
+		n, err := ovnnode.NewNode(clientset, node, stopChan)
+		if err != nil {
+			return err
+		}
 		if err := n.Start(); err != nil {
 			return err
 		}
@@ -246,7 +247,7 @@ func runOvnKube(ctx *cli.Context) error {
 	}
 
 	if config.HybridOverlay.Enabled {
-		if err := hocontroller.StartHybridOverlay(master != "", node, clientset, factory); err != nil {
+		if err := hocontroller.StartHybridOverlay(master != "", node, clientset, stopChan); err != nil {
 			return err
 		}
 	}

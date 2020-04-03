@@ -25,6 +25,7 @@ import (
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 )
 
@@ -120,6 +121,9 @@ type Controller struct {
 	serviceLBMap map[string]map[string]*loadBalancerConf
 
 	serviceLBLock sync.Mutex
+
+	// WorkQueue
+	queue workqueue.Interface
 }
 
 const (
@@ -135,9 +139,15 @@ const (
 
 // NewOvnController creates a new OVN controller for creating logical network
 // infrastructure and policy
-func NewOvnController(kubeClient kubernetes.Interface, wf *factory.WatchFactory, stopChan <-chan struct{}) *Controller {
+func NewOvnController(kubeClient kubernetes.Interface, stopChan <-chan struct{}) (*Controller, error) {
+	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	wf, err := factory.NewWatchFactory(kubeClient, stopChan, queue)
+	if err != nil {
+		return nil, err
+	}
 	return &Controller{
 		kube:                     &kube.Kube{KClient: kubeClient},
+		queue:                    queue,
 		watchFactory:             wf,
 		masterSubnetAllocator:    allocator.NewSubnetAllocator(),
 		logicalSwitchCache:       make(map[string]*net.IPNet),
@@ -159,7 +169,7 @@ func NewOvnController(kubeClient kubernetes.Interface, wf *factory.WatchFactory,
 		serviceVIPToNameLock:     sync.Mutex{},
 		serviceLBMap:             make(map[string]map[string]*loadBalancerConf),
 		serviceLBLock:            sync.Mutex{},
-	}
+	}, nil
 }
 
 // Run starts the actual watching.

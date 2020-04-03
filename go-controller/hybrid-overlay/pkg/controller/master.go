@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 )
 
@@ -22,13 +23,26 @@ import (
 type MasterController struct {
 	kube      *kube.Kube
 	allocator *allocator.SubnetAllocator
+	queue     workqueue.Interface
+	wf        *factory.WatchFactory
 }
 
 // NewMaster a new master controller that listens for node events
-func NewMaster(clientset kubernetes.Interface) (*MasterController, error) {
+func NewMaster(clientset kubernetes.Interface, stopChan <-chan struct{}) (*MasterController, error) {
+	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+
+	client := &kube.Kube{KClient: clientset}
+
+	wf, err := factory.NewWatchFactory(client.KClient, stopChan, queue)
+	if err != nil {
+		return nil, err
+	}
+
 	m := &MasterController{
-		kube:      &kube.Kube{KClient: clientset},
+		kube:      client,
 		allocator: allocator.NewSubnetAllocator(),
+		queue:     queue,
+		wf:        wf,
 	}
 
 	// Add our hybrid overlay CIDRs to the allocator
@@ -60,8 +74,8 @@ func NewMaster(clientset kubernetes.Interface) (*MasterController, error) {
 }
 
 // Start is the top level function to run hybrid overlay in master mode
-func (m *MasterController) Start(wf *factory.WatchFactory) error {
-	return houtil.StartNodeWatch(m, wf)
+func (m *MasterController) Start() error {
+	return houtil.StartNodeWatch(m, m.wf)
 }
 
 // hybridOverlayNodeEnsureSubnet allocates a subnet and sets the

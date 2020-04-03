@@ -12,7 +12,6 @@ import (
 	kubetesting "k8s.io/client-go/testing"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
@@ -213,11 +212,10 @@ var _ = Describe("Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			clusterController := NewOvnController(fakeClient, f, stopChan)
+			clusterController, err := NewOvnController(fakeClient, stopChan)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -295,8 +293,6 @@ var _ = Describe("Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
 			fakeClient.PrependReactor("patch", "nodes", func(action kubetesting.Action) (bool, kuberuntime.Object, error) {
@@ -305,7 +301,8 @@ var _ = Describe("Master Operations", func() {
 				return true, nil, fmt.Errorf("should not be called")
 			})
 
-			clusterController := NewOvnController(fakeClient, f, stopChan)
+			clusterController, err := NewOvnController(fakeClient, stopChan)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -478,11 +475,10 @@ subnet=%s
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			clusterController := NewOvnController(fakeClient, f, stopChan)
+			clusterController, err := NewOvnController(fakeClient, stopChan)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -688,11 +684,10 @@ var _ = Describe("Gateway Init Operations", func() {
 			})
 
 			stop := make(chan struct{})
-			wf, err := factory.NewWatchFactory(fakeClient, stop)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stop)
 
-			clusterController := NewOvnController(fakeClient, wf, stop)
+			clusterController, err := NewOvnController(fakeClient, stop)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -895,11 +890,10 @@ var _ = Describe("Gateway Init Operations", func() {
 			})
 
 			stop := make(chan struct{})
-			wf, err := factory.NewWatchFactory(fakeClient, stop)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stop)
 
-			clusterController := NewOvnController(fakeClient, wf, stop)
+			clusterController, err := NewOvnController(fakeClient, stop)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID

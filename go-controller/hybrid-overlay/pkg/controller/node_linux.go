@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 )
 
@@ -32,6 +33,8 @@ type NodeController struct {
 	nodeName    string
 	initialized bool
 	drMAC       string
+	queue       workqueue.Interface
+	wf          *factory.WatchFactory
 }
 
 // NewNode returns a node handler that listens for node events
@@ -39,10 +42,18 @@ type NodeController struct {
 // It initializes the node it is currently running on. On Linux, this means:
 //  1. Setting up a VXLAN gateway and hooking to the OVN gateway
 //  2. Setting back annotations about its VTEP and gateway MAC address to its own object
-func NewNode(clientset kubernetes.Interface, nodeName string) (*NodeController, error) {
+func NewNode(clientset kubernetes.Interface, nodeName string, stopChan <-chan struct{}) (*NodeController, error) {
+	client := &kube.Kube{KClient: clientset}
+	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	wf, err := factory.NewWatchFactory(client.KClient, stopChan, queue)
+	if err != nil {
+		return nil, err
+	}
 	node := &NodeController{
-		kube:     &kube.Kube{KClient: clientset},
+		kube:     client,
 		nodeName: nodeName,
+		queue:    queue,
+		wf:       wf,
 	}
 	if err := node.ensureHybridOverlayBridge(); err != nil {
 		return nil, err
@@ -147,12 +158,12 @@ func (n *NodeController) syncPods(pods []interface{}) {
 }
 
 // Start is the top level function to run hybrid-sdn in node mode
-func (n *NodeController) Start(wf *factory.WatchFactory) error {
-	if err := n.startNodeWatch(wf); err != nil {
+func (n *NodeController) Start() error {
+	if err := n.startNodeWatch(n.wf); err != nil {
 		return err
 	}
 
-	return n.startPodWatch(wf)
+	return n.startPodWatch(n.wf)
 }
 
 func (n *NodeController) startPodWatch(wf *factory.WatchFactory) error {

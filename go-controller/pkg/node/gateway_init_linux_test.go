@@ -14,7 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
@@ -165,11 +164,10 @@ cookie=0x0, duration=8366.597s, table=1, n_packets=10641, n_bytes=10370087, prio
 		})
 
 		stop := make(chan struct{})
-		wf, err := factory.NewWatchFactory(fakeClient, stop)
-		Expect(err).NotTo(HaveOccurred())
 		defer close(stop)
 
-		n := NewNode(nil, wf, existingNode.Name)
+		n, err := NewNode(nil, existingNode.Name, stop)
+		Expect(err).NotTo(HaveOccurred())
 
 		ipt, err := util.NewFakeWithProtocol(iptables.ProtocolIPv4)
 		Expect(err).NotTo(HaveOccurred())
@@ -331,8 +329,6 @@ var _ = Describe("Gateway Init Operations", func() {
 				Items: []v1.Node{existingNode},
 			})
 			stop := make(chan struct{})
-			wf, err := factory.NewWatchFactory(fakeClient, stop)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stop)
 
 			ipt, err := util.NewFakeWithProtocol(iptables.ProtocolIPv4)
@@ -348,7 +344,7 @@ var _ = Describe("Gateway Init Operations", func() {
 			err = testNS.Do(func(ns.NetNS) error {
 				defer GinkgoRecover()
 
-				err = initLocalnetGateway(nodeName, nodeSubnet, wf, nodeAnnotator)
+				err = initLocalnetGateway(nodeName, nodeSubnet, nil, nodeAnnotator)
 				Expect(err).NotTo(HaveOccurred())
 				// Check if IP has been assigned to LocalnetGatewayNextHopPort
 				link, err := netlink.LinkByName(localnetGatewayNextHopPort)

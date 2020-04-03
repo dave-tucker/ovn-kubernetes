@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 )
 
 // Handler represents an event handler and is private to the factory module
@@ -332,27 +333,56 @@ func newInformer(oType reflect.Type, sharedInformer cache.SharedIndexInformer) (
 	return i, nil
 }
 
-func newQueuedInformer(oType reflect.Type, sharedInformer cache.SharedIndexInformer, stopChan chan struct{}) (*informer, error) {
+func newQueuedInformer(oType reflect.Type, sharedInformer cache.SharedIndexInformer, stopChan <-chan struct{}, queue workqueue.Interface) (*informer, error) {
+	// Create newBaseInformer of type *informer
+	/*
+		type informer struct {
+		sync.RWMutex
+		oType    reflect.Type
+		inf      cache.SharedIndexInformer
+		handlers map[uint64]*Handler
+		events   []chan *event
+		lister   listerInterface
+		// initialAddFunc will be called to deliver the initial list of objects
+		// when a handler is added
+		initialAddFunc initialAddFn
+		}
+	*/
 	i, err := newBaseInformer(oType, sharedInformer)
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize the channel to be an array of 10 channels
 	i.events = make([]chan *event, numEventQueues)
+
+	// For each channel, create an event channel with capacity 1
 	for j := range i.events {
 		i.events[j] = make(chan *event, 1)
+		// Run a goroutine to process events on this channel until it's stopped
 		go i.processEvents(i.events[j], stopChan)
 	}
+
+	// Generate the initialAddFunc which is part of the calling signature?
 	i.initialAddFunc = func(h *Handler, items []interface{}) {
 		// Make a handler-specific channel array across which the
 		// initial add events will be distributed.
+
+		// adds is an array of interface{} channels of length 10
 		adds := make([]chan interface{}, numEventQueues)
+
+		/// create a waitgroup for adding stuff to the handler channels
 		queueWg := &sync.WaitGroup{}
 		queueWg.Add(len(adds))
+
 		for j := range adds {
+			// add a channel with capacity 1
 			adds[j] = make(chan interface{}, 1)
+			// spawn a goroutine
 			go func(addChan chan interface{}) {
 				defer queueWg.Done()
 				for {
+					// read an object from the channel and call the OnAdd of the handler
 					obj, ok := <-addChan
 					if !ok {
 						return
@@ -361,12 +391,14 @@ func newQueuedInformer(oType reflect.Type, sharedInformer cache.SharedIndexInfor
 				}
 			}(adds[j])
 		}
+
 		// Distribute the existing items into the handler-specific
 		// channel array.
 		for _, obj := range items {
 			queueIdx := getQueueNum(i.oType, obj)
 			adds[queueIdx] <- obj
 		}
+
 		// Close all the channels
 		for j := range adds {
 			close(adds[j])
@@ -374,7 +406,28 @@ func newQueuedInformer(oType reflect.Type, sharedInformer cache.SharedIndexInfor
 		// Wait until all the object additions have been processed
 		queueWg.Wait()
 	}
-	i.inf.AddEventHandler(i.newFederatedQueuedHandler())
+	i.inf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			key, err := cache.MetaNamespaceKeyFunc(obj)
+			if err == nil {
+				queue.Add(key)
+			}
+		},
+		UpdateFunc: func(old interface{}, new interface{}) {
+			key, err := cache.MetaNamespaceKeyFunc(new)
+			if err == nil {
+				queue.Add(key)
+			}
+		},
+		DeleteFunc: func(obj interface{}) {
+			// IndexerInformer uses a delta queue, therefore for deletes we have to use this
+			// key function.
+			key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+			if err == nil {
+				queue.Add(key)
+			}
+		},
+	})
 	return i, nil
 }
 
@@ -423,7 +476,7 @@ var (
 )
 
 // NewWatchFactory initializes a new watch factory
-func NewWatchFactory(c kubernetes.Interface, stopChan chan struct{}) (*WatchFactory, error) {
+func NewWatchFactory(c kubernetes.Interface, stopChan <-chan struct{}, queue workqueue.Interface) (*WatchFactory, error) {
 	// resync time is 12 hours, none of the resources being watched in ovn-kubernetes have
 	// any race condition where a resync may be required e.g. cni executable on node watching for
 	// events on pods and assuming that an 'ADD' event will contain the annotations put in by
@@ -455,7 +508,7 @@ func NewWatchFactory(c kubernetes.Interface, stopChan chan struct{}) (*WatchFact
 	if err != nil {
 		return nil, err
 	}
-	wf.informers[nodeType], err = newQueuedInformer(nodeType, wf.iFactory.Core().V1().Nodes().Informer(), stopChan)
+	wf.informers[nodeType], err = newQueuedInformer(nodeType, wf.iFactory.Core().V1().Nodes().Informer(), stopChan, queue)
 	if err != nil {
 		return nil, err
 	}
