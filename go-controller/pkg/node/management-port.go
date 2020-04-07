@@ -12,7 +12,7 @@ import (
 )
 
 func (n *OvnNode) createManagementPort(localSubnet *net.IPNet, nodeAnnotator kube.Annotator,
-	waiter *startupWaiter) error {
+	waiter *startupWaiter, stopChan <-chan struct{}) error {
 	// Retrieve the routerIP and mangementPortIP for a given localSubnet
 	routerIP, portIP := util.GetNodeWellKnownAddresses(localSubnet)
 	routerMac := util.IPAddrToHWAddr(routerIP.IP)
@@ -62,7 +62,7 @@ func (n *OvnNode) createManagementPort(localSubnet *net.IPNet, nodeAnnotator kub
 	}
 
 	err = createPlatformManagementPort(util.K8sMgmtIntfName, portIP.String(), routerIP.IP.String(),
-		routerMac, n.stopChan)
+		routerMac, stopChan)
 	if err != nil {
 		return err
 	}

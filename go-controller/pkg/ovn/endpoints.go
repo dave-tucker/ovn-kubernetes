@@ -6,6 +6,8 @@ import (
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
 	kapi "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 )
 
@@ -42,11 +44,12 @@ func (ovn *Controller) getLbEndpoints(ep *kapi.Endpoints) map[kapi.Protocol]map[
 }
 
 // AddEndpoints adds endpoints and creates corresponding resources in OVN
-func (ovn *Controller) AddEndpoints(ep *kapi.Endpoints) error {
+func (ovn *Controller) addEndpoints(ep *kapi.Endpoints) error {
 	klog.V(5).Infof("Adding endpoints: %s for namespace: %s", ep.Name, ep.Namespace)
 	// get service
 	// TODO: cache the service
-	svc, err := ovn.watchFactory.GetService(ep.Namespace, ep.Name)
+	serviceLister := listers.NewServiceLister(ovn.servicesInformer.GetIndexer())
+	svc, err := serviceLister.Services(ep.Namespace).Get(ep.Name)
 	if err != nil {
 		// This is not necessarily an error. For e.g when there are endpoints
 		// without a corresponding service.
@@ -113,18 +116,21 @@ func (ovn *Controller) handleNodePortLB(node *kapi.Node) error {
 	if physicalIP, _ = ovn.getGatewayPhysicalIP(physicalGateway); physicalIP == "" {
 		return fmt.Errorf("gateway physical IP for node %q does not yet exist", node.Name)
 	}
-	namespaces, err := ovn.watchFactory.GetNamespaces()
+	namespaceLister := listers.NewNamespaceLister(ovn.namespacesInformer.GetIndexer())
+	namespaces, err := namespaceLister.List(labels.Everything())
 	if err != nil {
 		return fmt.Errorf("failed to get k8s namespaces: %v", err)
 	}
 	for _, ns := range namespaces {
-		endpoints, err := ovn.watchFactory.GetEndpoints(ns.Name)
+		endpointsLister := listers.NewEndpointsLister(ovn.endpointsInformer.GetIndexer())
+		endpoints, err := endpointsLister.Endpoints(ns.Name).List(labels.Everything())
 		if err != nil {
 			klog.Errorf("failed to get k8s endpoints: %v", err)
 			continue
 		}
 		for _, ep := range endpoints {
-			svc, err := ovn.watchFactory.GetService(ep.Namespace, ep.Name)
+			serviceLister := listers.NewServiceLister(ovn.servicesInformer.GetIndexer())
+			svc, err := serviceLister.Services(ep.Namespace).Get(ep.Name)
 			if err != nil {
 				continue
 			}
@@ -160,19 +166,22 @@ func (ovn *Controller) handleNodePortLB(node *kapi.Node) error {
 // updateExternalIPsLB is used to handle the case where a node is deleted, and the external IP needs to be moved
 // to another GW node
 func (ovn *Controller) updateExternalIPsLB() {
-	namespaces, err := ovn.watchFactory.GetNamespaces()
+	namespaceLister := listers.NewNamespaceLister(ovn.namespacesInformer.GetIndexer())
+	namespaces, err := namespaceLister.List(labels.Everything())
 	if err != nil {
 		klog.Errorf("failed to get k8s namespaces: %v", err)
 		return
 	}
 	for _, ns := range namespaces {
-		endpoints, err := ovn.watchFactory.GetEndpoints(ns.Name)
+		endpointsLister := listers.NewEndpointsLister(ovn.endpointsInformer.GetIndexer())
+		endpoints, err := endpointsLister.Endpoints(ns.Name).List(labels.Everything())
 		if err != nil {
 			klog.Errorf("failed to get k8s endpoints: %v", err)
 			continue
 		}
 		for _, ep := range endpoints {
-			svc, err := ovn.watchFactory.GetService(ep.Namespace, ep.Name)
+			serviceLister := listers.NewServiceLister(ovn.servicesInformer.GetIndexer())
+			svc, err := serviceLister.Services(ep.Namespace).Get(ep.Name)
 			if err != nil {
 				continue
 			}
@@ -231,7 +240,8 @@ func (ovn *Controller) handleExternalIPs(svc *kapi.Service, svcPort kapi.Service
 
 func (ovn *Controller) deleteEndpoints(ep *kapi.Endpoints) error {
 	klog.V(5).Infof("Deleting endpoints: %s for namespace: %s", ep.Name, ep.Namespace)
-	svc, err := ovn.watchFactory.GetService(ep.Namespace, ep.Name)
+	serviceLister := listers.NewServiceLister(ovn.servicesInformer.GetIndexer())
+	svc, err := serviceLister.Services(ep.Namespace).Get(ep.Name)
 	if err != nil {
 		// This is not necessarily an error. For e.g when a service is deleted,
 		// you will get endpoint delete event and the call to fetch service

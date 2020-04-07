@@ -3,11 +3,12 @@ package ovn
 import (
 	. "github.com/onsi/gomega"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
+	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/informer"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	util "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -20,7 +21,6 @@ const (
 
 type FakeOVN struct {
 	fakeClient *fake.Clientset
-	watcher    *factory.WatchFactory
 	controller *Controller
 	stopChan   chan struct{}
 	fakeExec   *ovntest.FakeExec
@@ -53,12 +53,20 @@ func (o *FakeOVN) shutdown() {
 }
 
 func (o *FakeOVN) init() {
-	var err error
-
 	o.stopChan = make(chan struct{})
-	o.watcher, err = factory.NewWatchFactory(o.fakeClient, o.stopChan)
-	Expect(err).NotTo(HaveOccurred())
+	f := informers.NewSharedInformerFactory(o.fakeClient, informer.DefaultResyncInterval)
 
-	o.controller = NewOvnController(o.fakeClient, o.watcher, o.stopChan)
+	o.controller = NewOvnController(
+		o.fakeClient,
+		f.Core().V1().Nodes().Informer(),
+		f.Core().V1().Pods().Informer(),
+		f.Core().V1().Services().Informer(),
+		f.Core().V1().Endpoints().Informer(),
+		f.Core().V1().Namespaces().Informer(),
+		f.Networking().V1().NetworkPolicies().Informer(),
+		o.stopChan,
+	)
 	o.controller.multicastSupport = true
+
+	f.Start(o.stopChan)
 }

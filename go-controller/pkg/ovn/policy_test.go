@@ -8,7 +8,7 @@ import (
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	v1 "k8s.io/api/core/v1"
 	knet "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -367,8 +367,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 					},
 				)
 
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -454,9 +453,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				)
 				nPodTest.populateLogicalSwitchCache(fakeOvn)
 
-				fakeOvn.controller.WatchPods()
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -555,9 +552,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				)
 				nPodTest.populateLogicalSwitchCache(fakeOvn)
 
-				fakeOvn.controller.WatchPods()
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -651,9 +646,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				)
 				nPodTest.populateLogicalSwitchCache(fakeOvn)
 
-				fakeOvn.controller.WatchPods()
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -738,8 +731,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 					},
 				)
 
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -841,9 +833,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				)
 				nPodTest.populateLogicalSwitchCache(fakeOvn)
 
-				fakeOvn.controller.WatchPods()
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -950,9 +940,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				)
 				nPodTest.populateLogicalSwitchCache(fakeOvn)
 
-				fakeOvn.controller.WatchPods()
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -1046,9 +1034,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				)
 				nPodTest.populateLogicalSwitchCache(fakeOvn)
 
-				fakeOvn.controller.WatchPods()
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchNetworkPolicy()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Get(networkPolicy.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -1082,7 +1068,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 
 				nTest.baseCmds(fExec, namespace1)
 				nTest.addCmds(fExec, namespace1)
-				fakeOvn.controller.WatchNamespaces()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 				ns, err := fakeOvn.fakeClient.CoreV1().Namespaces().Get(
 					namespace1.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -1148,8 +1134,8 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				)
 				nPodTest.populateLogicalSwitchCache(fakeOvn)
 
-				fakeOvn.controller.WatchPods()
-				fakeOvn.controller.WatchNamespaces()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
+
 				ns, err := fakeOvn.fakeClient.CoreV1().Namespaces().Get(
 					namespace1.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -1198,8 +1184,7 @@ var _ = Describe("OVN NetworkPolicy Operations", func() {
 				nPodTest.baseCmds(fExec)
 				nTest.baseCmds(fExec, namespace1)
 				nTest.addCmds(fExec, namespace1)
-				fakeOvn.controller.WatchNamespaces()
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 				ns, err := fakeOvn.fakeClient.CoreV1().Namespaces().Get(
 					namespace1.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())

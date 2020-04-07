@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/controller"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
+	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/informer"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
+	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 	kexec "k8s.io/utils/exec"
 )
@@ -23,7 +26,7 @@ func main() {
 	c.Usage = "a node controller to integrate disparate networks with VXLAN tunnels"
 	c.Version = config.Version
 	c.Flags = config.GetFlags([]cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "node",
 			Usage:       "The name of this node in the Kubernetes cluster.",
 			Destination: &nodeName,
@@ -35,7 +38,25 @@ func main() {
 		return nil
 	}
 
-	if err := c.Run(os.Args); err != nil {
+	ctx := context.Background()
+
+	// trap Ctrl+C and call cancel on the context
+	ctx, cancel := context.WithCancel(ctx)
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	defer func() {
+		signal.Stop(ch)
+		cancel()
+	}()
+	go func() {
+		select {
+		case <-ch:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	if err := c.RunContext(ctx, os.Args); err != nil {
 		klog.Fatal(err)
 	}
 }
@@ -62,15 +83,27 @@ func runHybridOverlay(ctx *cli.Context) error {
 	stopChan := make(chan struct{})
 	defer close(stopChan)
 
-	factory, err := factory.NewWatchFactory(clientset, stopChan)
+	f := informers.NewSharedInformerFactory(clientset, informer.DefaultResyncInterval)
+	controller, err := controller.NewHybridOverlayController(
+		false,
+		nodeName,
+		clientset,
+		f.Core().V1().Nodes().Informer(),
+		f.Core().V1().Pods().Informer(),
+	)
 	if err != nil {
 		return err
 	}
 
-	if err := controller.StartHybridOverlay(false, nodeName, clientset, factory); err != nil {
-		return err
-	}
+	f.Start(stopChan)
+	go controller.Run(stopChan)
 
-	// run forever
-	select {}
+	// run until cancelled
+	select {
+	case <-ctx.Context.Done():
+		stopChan <- struct{}{}
+	default:
+		// noop
+	}
+	return nil
 }

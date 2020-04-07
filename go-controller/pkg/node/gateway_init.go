@@ -77,20 +77,18 @@ loop:
 }
 
 func (n *OvnNode) initGateway(subnet string, nodeAnnotator kube.Annotator,
-	waiter *startupWaiter) error {
+	waiter *startupWaiter, stopChan <-chan struct{}) error {
 
 	if config.Gateway.NodeportEnable {
-		err := initLoadBalancerHealthChecker(n.name, n.watchFactory)
-		if err != nil {
-			return err
-		}
+		// TODO: Wire this up in the top level
+		n.loadBalancerHealthChecker = NewLoadBalancerHealthChecker(n.name)
 	}
 
 	var err error
 	var prFn postWaitFunc
 	switch config.Gateway.Mode {
 	case config.GatewayModeLocal:
-		err = initLocalnetGateway(n.name, subnet, n.watchFactory, nodeAnnotator)
+		n.npw, err = n.initLocalnetGateway(n.name, subnet, nodeAnnotator)
 	case config.GatewayModeShared:
 		gatewayNextHop := config.Gateway.NextHop
 		gatewayIntf := config.Gateway.Interface
@@ -109,7 +107,7 @@ func (n *OvnNode) initGateway(subnet string, nodeAnnotator kube.Annotator,
 				gatewayIntf = defaultGatewayIntf
 			}
 		}
-		prFn, err = n.initSharedGateway(subnet, gatewayNextHop, gatewayIntf, nodeAnnotator)
+		prFn, err = n.initSharedGateway(subnet, gatewayNextHop, gatewayIntf, nodeAnnotator, stopChan)
 	case config.GatewayModeDisabled:
 		err = util.SetDisabledL3GatewayConfig(nodeAnnotator)
 	}

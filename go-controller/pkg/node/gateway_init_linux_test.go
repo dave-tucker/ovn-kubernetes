@@ -7,13 +7,15 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/urfave/cli"
+	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/informer"
+
+	cli "github.com/urfave/cli/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
@@ -171,11 +173,14 @@ cookie=0x0, duration=8366.597s, table=1, n_packets=10641, n_bytes=10370087, prio
 		})
 
 		stop := make(chan struct{})
-		wf, err := factory.NewWatchFactory(fakeClient, stop)
-		Expect(err).NotTo(HaveOccurred())
 		defer close(stop)
-
-		n := NewNode(nil, wf, existingNode.Name, stop)
+		f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+		n := NewNode(
+			nil,
+			existingNode.Name,
+			f.Core().V1().Endpoints().Informer(),
+			f.Core().V1().Services().Informer(),
+		)
 
 		ipt, err := util.NewFakeWithProtocol(iptables.ProtocolIPv4)
 		Expect(err).NotTo(HaveOccurred())
@@ -191,7 +196,7 @@ cookie=0x0, duration=8366.597s, table=1, n_packets=10641, n_bytes=10370087, prio
 			defer GinkgoRecover()
 
 			waiter := newStartupWaiter()
-			err = n.initGateway(nodeSubnet, nodeAnnotator, waiter)
+			err = n.initGateway(nodeSubnet, nodeAnnotator, waiter, stop)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = nodeAnnotator.Run()
@@ -294,8 +299,8 @@ var _ = Describe("Gateway Init Operations", func() {
 				lrpMAC        string = "00:00:00:05:46:c3"
 				brLocalnetMAC string = "11:22:33:44:55:66"
 				lrpIP         string = "100.64.0.3"
-				brNextHopIp   string = "169.254.33.1"
-				brNextHopCIDR string = brNextHopIp + "/24"
+				brNextHopIP   string = "169.254.33.1"
+				brNextHopCIDR string = brNextHopIP + "/24"
 				systemID      string = "cb9ec8fa-b409-4ef3-9f42-d9283c47aac6"
 				tcpLBUUID     string = "d2e858b2-cb5a-441b-a670-ed450f79a91f"
 				udpLBUUID     string = "12832f14-eb0f-44d4-b8db-4cccbc73c792"
@@ -338,9 +343,14 @@ var _ = Describe("Gateway Init Operations", func() {
 				Items: []v1.Node{existingNode},
 			})
 			stop := make(chan struct{})
-			wf, err := factory.NewWatchFactory(fakeClient, stop)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stop)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n := NewNode(
+				nil,
+				existingNode.Name,
+				f.Core().V1().Endpoints().Informer(),
+				f.Core().V1().Services().Informer(),
+			)
 
 			ipt, err := util.NewFakeWithProtocol(iptables.ProtocolIPv4)
 			Expect(err).NotTo(HaveOccurred())
@@ -355,7 +365,7 @@ var _ = Describe("Gateway Init Operations", func() {
 			err = testNS.Do(func(ns.NetNS) error {
 				defer GinkgoRecover()
 
-				err = initLocalnetGateway(nodeName, nodeSubnet, wf, nodeAnnotator)
+				_, err = n.initLocalnetGateway(nodeName, nodeSubnet, nodeAnnotator)
 				Expect(err).NotTo(HaveOccurred())
 				// Check if IP has been assigned to LocalnetGatewayNextHopPort
 				link, err := netlink.LinkByName(localnetGatewayNextHopPort)

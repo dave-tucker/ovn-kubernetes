@@ -14,7 +14,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containernetworking/plugins/pkg/testutils"
 	"github.com/coreos/go-iptables/iptables"
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	"github.com/vishvananda/netlink"
 
 	v1 "k8s.io/api/core/v1"
@@ -126,8 +126,10 @@ func testManagementPort(ctx *cli.Context, fexec *ovntest.FakeExec, testNS ns.Net
 	err = testNS.Do(func(ns.NetNS) error {
 		defer GinkgoRecover()
 
-		n := OvnNode{name: nodeName, stopChan: make(chan struct{})}
-		err = n.createManagementPort(nodeSubnetCIDR, nodeAnnotator, waiter)
+		n := OvnNode{name: nodeName}
+		stopChan := make(chan struct{}, 1)
+		defer close(stopChan)
+		err = n.createManagementPort(nodeSubnetCIDR, nodeAnnotator, waiter, stopChan)
 		Expect(err).NotTo(HaveOccurred())
 		l, err := netlink.LinkByName(mgtPort)
 		Expect(err).NotTo(HaveOccurred())

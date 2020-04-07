@@ -7,7 +7,6 @@ import (
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/types"
 	houtil "github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/util"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
@@ -133,14 +132,9 @@ func ensureBaseNetwork() error {
 	return nil
 }
 
-// Start is the top level function to run hybrid-sdn in node mode
-func (n *NodeController) Start(wf *factory.WatchFactory) error {
-	return houtil.StartNodeWatch(n, wf)
-}
-
 // Add sets up VXLAN tunnels to other nodes
 // For a windows node, this means watching for all nodes and programming the routing
-func (n *NodeController) Add(node *kapi.Node) {
+func (n *NodeController) AddNode(node *kapi.Node) error {
 	if node.Status.NodeInfo.MachineID == n.machineID {
 		// Initialize or the local node (or reconfigure it if the addresses
 		// have changed) by creating the network object and setting up
@@ -150,7 +144,7 @@ func (n *NodeController) Add(node *kapi.Node) {
 			n.localNodeCIDR = cidr
 			n.localNodeIP = nodeIP
 			if err := n.initSelf(node, cidr); err != nil {
-				klog.Errorf("failed to initialize node: %v", err)
+				return fmt.Errorf("failed to initialize node: %v", err)
 			}
 		}
 		return
@@ -160,14 +154,13 @@ func (n *NodeController) Add(node *kapi.Node) {
 	if cidr == nil || nodeIP == nil || drMAC == nil {
 		klog.V(5).Infof("cleaning up hybrid overlay resources for node %q because: %v", node.Name, err)
 		n.Delete(node)
-		return
+		return err
 	}
 
 	// For remote nodes, just set up the VXLAN tunnel to it
 	network, err := hcn.GetNetworkByID(n.networkID)
 	if err != nil {
-		klog.Error("error getting HCN network: %v", err)
-		return
+		return fmt.Errorf("error getting HCN network: %v", err)
 	}
 
 	klog.Infof("Adding a remote subnet route for CIDR '%s' (remote node address: %s, distributed router MAC: %s, VNI: %v).",
@@ -186,7 +179,7 @@ func (n *NodeController) Add(node *kapi.Node) {
 	n.remoteSubnetMap[node.Status.NodeInfo.MachineID] = cidr.String()
 
 	if err = AddRemoteSubnetPolicy(network, &networkPolicySettings); err != nil {
-		klog.Error("error adding remote subnet policy: %v", err)
+		return fmt.Errorf("error adding remote subnet policy: %v", err)
 	}
 }
 
@@ -200,7 +193,7 @@ func (n *NodeController) Update(oldNode, newNode *kapi.Node) {
 }
 
 // Delete handles node deletions
-func (n *NodeController) Delete(node *kapi.Node) {
+func (n *NodeController) DeleteNode(key string) error {
 	// Treat the local node differently than other nodes
 	// If the local node is removed, we want to delete the network object
 	// and remove all the VXLAN plumbing towards other existing nodes. If
@@ -208,7 +201,7 @@ func (n *NodeController) Delete(node *kapi.Node) {
 	// (i.e. the remote subnet) to it.
 
 	if node.Status.NodeInfo.MachineID == n.machineID {
-		if err := n.uninitSelf(node); err != nil {
+		if err := n.uninitSelf(node.Name); err != nil {
 			klog.Errorf("failed to uninitialize node: %v", err)
 		}
 		return

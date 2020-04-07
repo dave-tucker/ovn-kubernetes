@@ -6,74 +6,85 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube/healthcheck"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
 	kapi "k8s.io/api/core/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 )
 
-// initLoadBalancerHealthChecker initializes the health check server for
-// ServiceTypeLoadBalancer services
-func initLoadBalancerHealthChecker(nodeName string, wf *factory.WatchFactory) error {
-	server := healthcheck.NewServer(nodeName, nil, nil, nil)
-	services := make(map[ktypes.NamespacedName]uint16)
-	endpoints := make(map[ktypes.NamespacedName]int)
+// LoadBalancerHealthChecker responds to add/delete endpoint/service events
+// to ensure that the service loadbalancer is healthy
+type LoadBalancerHealthChecker interface {
+	AddService(svc *kapi.Service)
+	DeleteService(svc *kapi.Service)
+	AddEndpoints(ep *kapi.Endpoints)
+	DeleteEndpoints(ep *kapi.Endpoints)
+}
 
-	_, err := wf.AddServiceHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			svc := obj.(*kapi.Service)
-			if svc.Spec.HealthCheckNodePort != 0 {
-				name := ktypes.NamespacedName{Namespace: svc.Namespace, Name: svc.Name}
-				services[name] = uint16(svc.Spec.HealthCheckNodePort)
-				_ = server.SyncServices(services)
-			}
-		},
-		UpdateFunc: func(old, new interface{}) {
-			// HealthCheckNodePort can't be changed on update
-		},
-		DeleteFunc: func(obj interface{}) {
-			svc := obj.(*kapi.Service)
-			if svc.Spec.HealthCheckNodePort != 0 {
-				name := ktypes.NamespacedName{Namespace: svc.Namespace, Name: svc.Name}
-				delete(services, name)
-				delete(endpoints, name)
-				_ = server.SyncServices(services)
-			}
-		},
-	}, nil)
-	if err != nil {
-		return err
+type loadBalancerHealthChecker struct {
+	nodeName  string
+	server    healthcheck.Server
+	services  map[ktypes.NamespacedName]uint16
+	endpoints map[ktypes.NamespacedName]int
+}
+
+// NewLoadBalancerHealthChecker returns a new load balancer health checker
+func NewLoadBalancerHealthChecker(nodeName string) LoadBalancerHealthChecker {
+	return &loadBalancerHealthChecker{
+		nodeName:  nodeName,
+		server:    healthcheck.NewServer(nodeName, nil, nil, nil),
+		services:  make(map[ktypes.NamespacedName]uint16),
+		endpoints: make(map[ktypes.NamespacedName]int),
 	}
+}
 
-	_, err = wf.AddEndpointsHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			ep := obj.(*kapi.Endpoints)
-			name := ktypes.NamespacedName{Namespace: ep.Namespace, Name: ep.Name}
-			if _, exists := services[name]; exists {
-				endpoints[name] = countLocalEndpoints(ep, nodeName)
-				_ = server.SyncEndpoints(endpoints)
-			}
-		},
-		UpdateFunc: func(old, new interface{}) {
-			ep := new.(*kapi.Endpoints)
-			name := ktypes.NamespacedName{Namespace: ep.Namespace, Name: ep.Name}
-			if _, exists := services[name]; exists {
-				endpoints[name] = countLocalEndpoints(ep, nodeName)
-				_ = server.SyncEndpoints(endpoints)
-			}
-		},
-		DeleteFunc: func(obj interface{}) {
-			ep := obj.(*kapi.Endpoints)
-			name := ktypes.NamespacedName{Namespace: ep.Namespace, Name: ep.Name}
-			delete(endpoints, name)
-			_ = server.SyncEndpoints(endpoints)
-		},
-	}, nil)
-	return err
+type dummyLoadBalancerHealthChecker struct{}
+
+func (d dummyLoadBalancerHealthChecker) AddService(svc *kapi.Service)       { return }
+func (d dummyLoadBalancerHealthChecker) DeleteService(svc *kapi.Service)    { return }
+func (d dummyLoadBalancerHealthChecker) AddEndpoints(ep *kapi.Endpoints)    { return }
+func (d dummyLoadBalancerHealthChecker) DeleteEndpoints(ep *kapi.Endpoints) { return }
+
+// DummyLoadBalancerHealthChecker returns a noop implementation of the LoadBalancerHealthChecker interface
+func DummyLoadBalancerHealthChecker() LoadBalancerHealthChecker {
+	return &dummyLoadBalancerHealthChecker{}
+}
+
+// AddService handles the add service event
+func (l *loadBalancerHealthChecker) AddService(svc *kapi.Service) {
+	if svc.Spec.HealthCheckNodePort != 0 {
+		name := ktypes.NamespacedName{Namespace: svc.Namespace, Name: svc.Name}
+		l.services[name] = uint16(svc.Spec.HealthCheckNodePort)
+		_ = l.server.SyncServices(l.services)
+	}
+}
+
+// DeleteService handles the delete service event
+func (l *loadBalancerHealthChecker) DeleteService(svc *kapi.Service) {
+	if svc.Spec.HealthCheckNodePort != 0 {
+		name := ktypes.NamespacedName{Namespace: svc.Namespace, Name: svc.Name}
+		delete(l.services, name)
+		delete(l.endpoints, name)
+		_ = l.server.SyncServices(l.services)
+	}
+}
+
+// AddEndpoints handles the add endpoints event
+func (l *loadBalancerHealthChecker) AddEndpoints(ep *kapi.Endpoints) {
+	name := ktypes.NamespacedName{Namespace: ep.Namespace, Name: ep.Name}
+	if _, exists := l.services[name]; exists {
+		l.endpoints[name] = countLocalEndpoints(ep, l.nodeName)
+		_ = l.server.SyncEndpoints(l.endpoints)
+	}
+}
+
+// DeleteEndpoints handles the delete endpoints event
+func (l *loadBalancerHealthChecker) DeleteEndpoints(ep *kapi.Endpoints) {
+	name := ktypes.NamespacedName{Namespace: ep.Namespace, Name: ep.Name}
+	delete(l.endpoints, name)
+	_ = l.server.SyncEndpoints(l.endpoints)
 }
 
 func countLocalEndpoints(ep *kapi.Endpoints, nodeName string) int {
@@ -91,7 +102,7 @@ func countLocalEndpoints(ep *kapi.Endpoints, nodeName string) int {
 }
 
 // check for OVS internal ports without any ofport assigned, they are stale ports that must be deleted
-func checkForStaleOVSInterfaces(stopChan chan struct{}) {
+func checkForStaleOVSInterfaces(stopChan <-chan struct{}) {
 	for {
 		select {
 		case <-time.After(60 * time.Second):
@@ -121,7 +132,7 @@ func checkForStaleOVSInterfaces(stopChan chan struct{}) {
 
 // checkDefaultOpenFlow checks for the existence of default OpenFlow rules and
 // exits if the output is not as expected
-func checkDefaultConntrackRules(gwBridge string, nFlows int, stopChan chan struct{}) {
+func checkDefaultConntrackRules(gwBridge string, nFlows int, stopChan <-chan struct{}) {
 	flowCount := fmt.Sprintf("flow_count=%d", nFlows)
 	for {
 		select {

@@ -227,11 +227,11 @@ func (ovn *Controller) createLoadBalancerRejectACL(lb string, serviceIP string, 
 	if err != nil {
 		return "", fmt.Errorf("error creating ACL reject rule: %s for load balancer %s: %s, %s", cmd, lb, stderr,
 			err)
-	} else {
-		// Associate ACL UUID with load balancer and ip+port so we can remove this ACL if
-		// backends are re-added.
-		ovn.setServiceACLToLB(lb, util.JoinHostPortInt32(serviceIP, port), aclUUID)
 	}
+	// Associate ACL UUID with load balancer and ip+port so we can remove this ACL if
+	// backends are re-added.
+	ovn.setServiceACLToLB(lb, util.JoinHostPortInt32(serviceIP, port), aclUUID)
+
 	return aclUUID, nil
 }
 

@@ -2,17 +2,14 @@ package node
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
 	kapi "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 )
 
@@ -22,9 +19,10 @@ const (
 	defaultOpenFlowCookie = "0xdeff105"
 )
 
-func addService(service *kapi.Service, inport, outport, gwBridge string) {
+// AddService handles the add service event
+func (n *sharedGatewayNodePortWatcher) AddService(service *kapi.Service) error {
 	if !util.ServiceTypeHasNodePort(service) {
-		return
+		return nil
 	}
 
 	for _, svcPort := range service.Spec.Ports {
@@ -35,20 +33,22 @@ func addService(service *kapi.Service, inport, outport, gwBridge string) {
 		}
 		protocol := strings.ToLower(string(svcPort.Protocol))
 
-		_, stderr, err := util.RunOVSOfctl("add-flow", gwBridge,
+		_, stderr, err := util.RunOVSOfctl("add-flow", n.gwBridge,
 			fmt.Sprintf("priority=100, in_port=%s, %s, tp_dst=%d, actions=%s",
-				inport, protocol, svcPort.NodePort, outport))
+				n.ofPortPhys, protocol, svcPort.NodePort, n.ofPortPatch))
 		if err != nil {
 			klog.Errorf("Failed to add openflow flow on %s for nodePort "+
-				"%d, stderr: %q, error: %v", gwBridge,
+				"%d, stderr: %q, error: %v", n.gwBridge,
 				svcPort.NodePort, stderr, err)
 		}
 	}
+	return nil
 }
 
-func deleteService(service *kapi.Service, inport, gwBridge string) {
+// DeleteService handles the delete service event
+func (n *sharedGatewayNodePortWatcher) DeleteService(service *kapi.Service) error {
 	if !util.ServiceTypeHasNodePort(service) {
-		return
+		return nil
 	}
 
 	for _, svcPort := range service.Spec.Ports {
@@ -60,15 +60,16 @@ func deleteService(service *kapi.Service, inport, gwBridge string) {
 
 		protocol := strings.ToLower(string(svcPort.Protocol))
 
-		_, stderr, err := util.RunOVSOfctl("del-flows", gwBridge,
+		_, stderr, err := util.RunOVSOfctl("del-flows", n.gwBridge,
 			fmt.Sprintf("in_port=%s, %s, tp_dst=%d",
-				inport, protocol, svcPort.NodePort))
+				n.ofPortPhys, protocol, svcPort.NodePort))
 		if err != nil {
 			klog.Errorf("Failed to delete openflow flow on %s for nodePort "+
-				"%d, stderr: %q, error: %v", gwBridge,
+				"%d, stderr: %q, error: %v", n.gwBridge,
 				svcPort.NodePort, stderr, err)
 		}
 	}
+	return nil
 }
 
 func syncServices(services []interface{}, inport, gwBridge string) {
@@ -150,56 +151,50 @@ func syncServices(services []interface{}, inport, gwBridge string) {
 	}
 }
 
-func nodePortWatcher(nodeName, gwBridge, gwIntf string, wf *factory.WatchFactory) error {
-	// the name of the patch port created by ovn-controller is of the form
-	// patch-<logical_port_name_of_localnet_port>-to-br-int
-	patchPort := "patch-" + gwBridge + "_" + nodeName + "-to-br-int"
-	// Get ofport of patchPort
-	ofportPatch, stderr, err := util.RunOVSVsctl("--if-exists", "get",
-		"interface", patchPort, "ofport")
-	if err != nil {
-		return fmt.Errorf("Failed to get ofport of %s, stderr: %q, error: %v",
-			patchPort, stderr, err)
-	}
+// NodePortWatcher reponds to node port changes for a shared gateway
+type sharedGatewayNodePortWatcher struct {
+	nodeName    string
+	gwBridge    string
+	gwIntf      string
+	patchPort   string
+	ofPortPatch string
+	ofPortPhys  string
+}
 
+// NewNodePortWatcher returns a new instance of a NodePortWatcher
+func NewSharedGatewayNodePortWatcher(nodeName, gwBridge, gwIntf string) (NodePortWatcher, error) {
+	npw := &sharedGatewayNodePortWatcher{
+		nodeName: nodeName,
+		gwBridge: gwBridge,
+		gwIntf:   gwIntf,
+		// the name of the patch port created by ovn-controller is of the form
+		// patch-<logical_port_name_of_localnet_port>-to-br-int
+		patchPort: fmt.Sprintf("patch-%s_%s-to-br-int", gwBridge, nodeName),
+	}
+	// Get ofport of patchPort
+	var stderr string
+	var err error
+	npw.ofPortPatch, stderr, err = util.RunOVSVsctl("--if-exists", "get",
+		"interface", npw.patchPort, "ofport")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get ofport of %s, stderr: %q, error: %v",
+			npw.patchPort, stderr, err)
+	}
 	// Get ofport of physical interface
-	ofportPhys, stderr, err := util.RunOVSVsctl("--if-exists", "get",
+	npw.ofPortPhys, stderr, err = util.RunOVSVsctl("--if-exists", "get",
 		"interface", gwIntf, "ofport")
 	if err != nil {
-		return fmt.Errorf("Failed to get ofport of %s, stderr: %q, error: %v",
+		return nil, fmt.Errorf("Failed to get ofport of %s, stderr: %q, error: %v",
 			gwIntf, stderr, err)
 	}
-
-	_, err = wf.AddServiceHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			service := obj.(*kapi.Service)
-			addService(service, ofportPhys, ofportPatch, gwBridge)
-		},
-		UpdateFunc: func(old, new interface{}) {
-			svcNew := new.(*kapi.Service)
-			svcOld := old.(*kapi.Service)
-			if reflect.DeepEqual(svcNew.Spec, svcOld.Spec) {
-				return
-			}
-			deleteService(svcOld, ofportPhys, gwBridge)
-			addService(svcNew, ofportPhys, ofportPatch, gwBridge)
-		},
-		DeleteFunc: func(obj interface{}) {
-			service := obj.(*kapi.Service)
-			deleteService(service, ofportPhys, gwBridge)
-		},
-	}, func(services []interface{}) {
-		syncServices(services, ofportPhys, gwBridge)
-	})
-
-	return err
+	return npw, nil
 }
 
 // since we share the host's k8s node IP, add OpenFlow flows
 // -- to steer the NodePort traffic arriving on the host to the OVN logical topology and
 // -- to also connection track the outbound north-south traffic through l3 gateway so that
 //    the return traffic can be steered back to OVN logical topology
-func addDefaultConntrackRules(nodeName, gwBridge, gwIntf string, stopChan chan struct{}) error {
+func addDefaultConntrackRules(nodeName, gwBridge, gwIntf string, stopChan <-chan struct{}) error {
 	// the name of the patch port created by ovn-controller is of the form
 	// patch-<logical_port_name_of_localnet_port>-to-br-int
 	localnetLpName := gwBridge + "_" + nodeName
@@ -285,7 +280,7 @@ func addDefaultConntrackRules(nodeName, gwBridge, gwIntf string, stopChan chan s
 }
 
 func (n *OvnNode) initSharedGateway(subnet, gwNextHop, gwIntf string,
-	nodeAnnotator kube.Annotator) (postWaitFunc, error) {
+	nodeAnnotator kube.Annotator, stopChan <-chan struct{}) (postWaitFunc, error) {
 	var bridgeName string
 	var uplinkName string
 	var brCreated bool
@@ -342,13 +337,13 @@ func (n *OvnNode) initSharedGateway(subnet, gwNextHop, gwIntf string,
 	return func() error {
 		// Program cluster.GatewayIntf to let non-pod traffic to go to host
 		// stack
-		if err := addDefaultConntrackRules(n.name, bridgeName, uplinkName, n.stopChan); err != nil {
+		if err := addDefaultConntrackRules(n.name, bridgeName, uplinkName, stopChan); err != nil {
 			return err
 		}
 
 		if config.Gateway.NodeportEnable {
 			// Program cluster.GatewayIntf to let nodePort traffic to go to pods.
-			if err := nodePortWatcher(n.name, bridgeName, uplinkName, n.watchFactory); err != nil {
+			if n.npw, err = NewSharedGatewayNodePortWatcher(n.name, bridgeName, uplinkName); err != nil {
 				return err
 			}
 		}

@@ -113,7 +113,7 @@ $ go get github.com/urfave/cli
 ```go
 ...
 import (
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 ...
 ```
@@ -135,7 +135,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -160,7 +160,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -202,7 +202,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -269,7 +269,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -302,7 +302,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -350,7 +350,7 @@ import (
   "os"
   "fmt"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -407,7 +407,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -452,7 +452,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -497,7 +497,7 @@ import (
   "os"
   "sort"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -566,7 +566,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -602,7 +602,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -639,7 +639,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -711,7 +711,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
   "github.com/urfave/cli/altsrc"
 )
 
@@ -763,7 +763,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -835,7 +835,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -889,7 +889,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -939,7 +939,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -1003,7 +1003,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -1078,7 +1078,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -1127,7 +1127,7 @@ import (
   "io"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -1188,7 +1188,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -1227,7 +1227,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -1260,7 +1260,7 @@ import (
   "log"
   "os"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 var (
@@ -1302,7 +1302,7 @@ import (
   "os"
   "time"
 
-  "github.com/urfave/cli"
+  cli "github.com/urfave/cli/v2"
 )
 
 func init() {

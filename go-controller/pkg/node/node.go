@@ -10,35 +10,90 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/informer"
+
 	"k8s.io/klog"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/cni"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
 	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
 // OvnNode is the object holder for utilities meant for node management
 type OvnNode struct {
-	name         string
-	Kube         kube.Interface
-	watchFactory *factory.WatchFactory
-	stopChan     chan struct{}
+	name string
+	Kube kube.Interface
+
+	loadBalancerHealthChecker LoadBalancerHealthChecker
+	npw                       NodePortWatcher
+
+	endpointsInformer informer.EventHandler
+	servicesInformer  informer.EventHandler
 }
 
 // NewNode creates a new controller for node management
-func NewNode(kubeClient kubernetes.Interface, wf *factory.WatchFactory, name string, stopChan chan struct{}) *OvnNode {
-	return &OvnNode{
-		name:         name,
-		Kube:         &kube.Kube{KClient: kubeClient},
-		watchFactory: wf,
-		stopChan:     stopChan,
+func NewNode(
+	kubeClient kubernetes.Interface,
+	name string,
+	endpointsInformer cache.SharedIndexInformer,
+	servicesInformer cache.SharedIndexInformer,
+) *OvnNode {
+	n := &OvnNode{
+		name:                      name,
+		Kube:                      &kube.Kube{KClient: kubeClient},
+		loadBalancerHealthChecker: DummyLoadBalancerHealthChecker(),
 	}
+	n.endpointsInformer = informer.NewDefaultEventHandler(
+		"endpoints",
+		endpointsInformer,
+		func(obj interface{}) error {
+			endpoint, ok := obj.(*kapi.Endpoints)
+			if !ok {
+				return fmt.Errorf("obj is not a Endpoint")
+			}
+			n.loadBalancerHealthChecker.AddEndpoints(endpoint)
+			return nil
+		},
+		func(obj interface{}) error {
+			endpoint, ok := obj.(*kapi.Endpoints)
+			if !ok {
+				return fmt.Errorf("obj is not a Endpoint")
+			}
+			n.loadBalancerHealthChecker.DeleteEndpoints(endpoint)
+			return nil
+		},
+	)
+	n.servicesInformer = informer.NewDefaultEventHandler(
+		"services",
+		servicesInformer,
+		func(obj interface{}) error {
+			service, ok := obj.(*kapi.Service)
+			if !ok {
+				return fmt.Errorf("obj is not a Service")
+			}
+			// TODO: Parallel dispatch
+			n.loadBalancerHealthChecker.AddService(service)
+			n.npw.AddService(service)
+			return nil
+		},
+		func(obj interface{}) error {
+			service, ok := obj.(*kapi.Service)
+			if !ok {
+				return fmt.Errorf("obj is not a Service")
+			}
+			// TODO: Parallel dispatch
+			n.loadBalancerHealthChecker.DeleteService(service)
+			n.npw.DeleteService(service)
+			return nil
+		},
+	)
+	return n
 }
 
 func setupOVNNode(node *kapi.Node) error {
@@ -148,7 +203,7 @@ func isOVNControllerReady(name string) (bool, error) {
 
 // Start learns the subnet assigned to it by the master controller
 // and calls the SetupNode script which establishes the logical switch
-func (n *OvnNode) Start() error {
+func (n *OvnNode) Start(stopChan <-chan struct{}) error {
 	var err error
 	var node *kapi.Node
 	var subnet *net.IPNet
@@ -201,12 +256,12 @@ func (n *OvnNode) Start() error {
 	waiter := newStartupWaiter()
 
 	// Initialize gateway resources on the node
-	if err := n.initGateway(subnet.String(), nodeAnnotator, waiter); err != nil {
+	if err := n.initGateway(subnet.String(), nodeAnnotator, waiter, stopChan); err != nil {
 		return err
 	}
 
 	// Initialize management port resources on the node
-	if err := n.createManagementPort(subnet, nodeAnnotator, waiter); err != nil {
+	if err := n.createManagementPort(subnet, nodeAnnotator, waiter, stopChan); err != nil {
 		return err
 	}
 
@@ -227,7 +282,7 @@ func (n *OvnNode) Start() error {
 	}
 
 	// start health check to ensure there are no stale OVS internal ports
-	go checkForStaleOVSInterfaces(n.stopChan)
+	go checkForStaleOVSInterfaces(stopChan)
 
 	confFile := filepath.Join(config.CNI.ConfDir, config.CNIConfFileName)
 	_, err = os.Stat(confFile)

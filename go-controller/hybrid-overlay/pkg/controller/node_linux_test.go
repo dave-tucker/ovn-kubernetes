@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/urfave/cli"
-	"k8s.io/api/core/v1"
+	cli "github.com/urfave/cli/v2"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/types"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
+	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/informer"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 
@@ -141,15 +142,21 @@ var _ = Describe("Hybrid Overlay Node Linux Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n, err := NewNode(fakeClient, thisNode)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n, err := NewHybridOverlayController(
+				false,
+				thisNode,
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = n.startNodeWatch(f)
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+
+			go n.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 			return nil
@@ -194,15 +201,21 @@ var _ = Describe("Hybrid Overlay Node Linux Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n, err := NewNode(fakeClient, thisNode)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n, err := NewHybridOverlayController(
+				false,
+				thisNode,
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = n.startNodeWatch(f)
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+
+			go n.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 			return nil
@@ -239,15 +252,21 @@ var _ = Describe("Hybrid Overlay Node Linux Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n, err := NewNode(fakeClient, thisNode)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n, err := NewHybridOverlayController(
+				false,
+				thisNode,
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = n.startNodeWatch(f)
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+
+			go n.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 			return nil
@@ -293,15 +312,21 @@ var _ = Describe("Hybrid Overlay Node Linux Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n, err := NewNode(fakeClient, thisNode)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n, err := NewHybridOverlayController(
+				false,
+				thisNode,
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = n.startNodeWatch(f)
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+
+			go n.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 
@@ -345,15 +370,21 @@ var _ = Describe("Hybrid Overlay Node Linux Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n, err := NewNode(fakeClient, thisNode)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n, err := NewHybridOverlayController(
+				false,
+				thisNode,
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = n.startNodeWatch(f)
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+
+			go n.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 
@@ -392,15 +423,21 @@ var _ = Describe("Hybrid Overlay Node Linux Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n, err := NewNode(fakeClient, thisNode)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n, err := NewHybridOverlayController(
+				false,
+				thisNode,
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = n.startPodWatch(f)
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+
+			go n.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 
@@ -441,16 +478,21 @@ var _ = Describe("Hybrid Overlay Node Linux Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
 
-			n, err := NewNode(fakeClient, thisNode)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
+			n, err := NewHybridOverlayController(
+				false,
+				thisNode,
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+			)
 			Expect(err).NotTo(HaveOccurred())
-			n.drMAC = hybMAC
 
-			err = n.startPodWatch(f)
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+
+			go n.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 

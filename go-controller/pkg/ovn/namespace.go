@@ -3,9 +3,10 @@ package ovn
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	kapi "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 )
 
@@ -37,32 +38,12 @@ func (oc *Controller) syncNamespaces(namespaces []interface{}) {
 	}
 }
 
-func (oc *Controller) waitForNamespaceEvent(namespace string) error {
-	// Wait for 10 seconds to get the namespace event.
-	count := 100
-	for {
-		if oc.namespacePolicies[namespace] != nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-		count--
-		if count == 0 {
-			return fmt.Errorf("timeout waiting for namespace event")
-		}
-	}
-	return nil
-}
-
 func (oc *Controller) addPodToNamespace(ns string, portInfo *lpInfo) error {
 	mutex := oc.getNamespaceLock(ns)
 	if mutex == nil {
 		return nil
 	}
 	defer mutex.Unlock()
-
-	if oc.namespacePolicies[ns] == nil {
-		return nil
-	}
 
 	// If pod has already been added, nothing to do.
 	address := portInfo.ip.String()
@@ -150,7 +131,7 @@ func (oc *Controller) multicastDeleteNamespace(ns *kapi.Namespace) {
 }
 
 // AddNamespace creates corresponding addressset in ovn db
-func (oc *Controller) AddNamespace(ns *kapi.Namespace) {
+func (oc *Controller) addNamespace(ns *kapi.Namespace) error {
 	klog.V(5).Infof("Adding namespace: %s", ns.Name)
 	oc.namespaceMutexMutex.Lock()
 	if oc.namespaceMutex[ns.Name] == nil {
@@ -167,7 +148,9 @@ func (oc *Controller) AddNamespace(ns *kapi.Namespace) {
 
 	// Get all the pods in the namespace and append their IP to the
 	// address_set
-	existingPods, err := oc.watchFactory.GetPods(ns.Name)
+	podsLister := listers.NewPodLister(oc.podInformer.GetIndexer())
+	existingPods, err := podsLister.Pods(ns.Name).List(labels.Everything())
+
 	if err != nil {
 		klog.Errorf("Failed to get all the pods (%v)", err)
 	} else {
@@ -188,8 +171,8 @@ func (oc *Controller) AddNamespace(ns *kapi.Namespace) {
 	// in the namespace will be added to the address_set
 	createAddressSet(ns.Name, hashedAddressSet(ns.Name), addresses)
 
-	oc.namespacePolicies[ns.Name] = make(map[string]*namespacePolicy)
 	oc.multicastUpdateNamespace(ns)
+	return nil
 }
 
 func (oc *Controller) updateNamespace(old, newer *kapi.Namespace) {
@@ -203,23 +186,23 @@ func (oc *Controller) updateNamespace(old, newer *kapi.Namespace) {
 	oc.multicastUpdateNamespace(newer)
 }
 
-func (oc *Controller) deleteNamespace(ns *kapi.Namespace) {
+func (oc *Controller) deleteNamespace(ns *kapi.Namespace) error {
 	klog.V(5).Infof("Deleting namespace: %s", ns.Name)
 	oc.namespaceMutexMutex.Lock()
 	defer oc.namespaceMutexMutex.Unlock()
 
 	mutex, ok := oc.namespaceMutex[ns.Name]
 	if !ok {
-		return
+		return fmt.Errorf("namespace %s is not contained in namespaceMutex", ns.Name)
 	}
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	deleteAddressSet(hashedAddressSet(ns.Name))
 	oc.multicastDeleteNamespace(ns)
-	delete(oc.namespacePolicies, ns.Name)
 	delete(oc.namespaceAddressSet, ns.Name)
 	delete(oc.namespaceMutex, ns.Name)
+	return nil
 }
 
 // getNamespaceLock grabs the lock for a particular namespace. If the

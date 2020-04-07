@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	kexec "k8s.io/utils/exec"
 )
 
@@ -168,7 +168,7 @@ var ReadinessProbeCommand = cli.Command{
 	Name:  "readiness-probe",
 	Usage: "check readiness of the specified target daemon",
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "target, t",
 			Usage: "target daemon to check for readiness",
 		},

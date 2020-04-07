@@ -32,7 +32,7 @@ const (
 )
 
 // Start waits until this process is the leader before starting master functions
-func (oc *Controller) Start(kClient kubernetes.Interface, nodeName string) error {
+func (oc *Controller) Start(kClient kubernetes.Interface, nodeName string, stopCh chan struct{}) error {
 	// Set up leader election process first
 	rl, err := resourcelock.New(
 		resourcelock.ConfigMapsResourceLock,
@@ -63,9 +63,7 @@ func (oc *Controller) Start(kClient kubernetes.Interface, nodeName string) error
 				if err := oc.StartClusterMaster(nodeName); err != nil {
 					panic(err.Error())
 				}
-				if err := oc.Run(); err != nil {
-					panic(err.Error())
-				}
+				go oc.Run(stopCh)
 			},
 			OnStoppedLeading: func() {
 				//This node was leader and it lost the election.
@@ -74,6 +72,7 @@ func (oc *Controller) Start(kClient kubernetes.Interface, nodeName string) error
 				// the cache. It is better to exit for now.
 				// kube will restart and this will become a follower.
 				klog.Infof("no longer leader; exiting")
+				stopCh <- struct{}{}
 				os.Exit(1)
 			},
 			OnNewLeader: func(newLeaderName string) {
@@ -582,7 +581,7 @@ func (oc *Controller) addNodeAnnotations(node *kapi.Node, subnet string) error {
 	return nil
 }
 
-func (oc *Controller) addNode(node *kapi.Node) (hostsubnet *net.IPNet, err error) {
+func (oc *Controller) doAddNode(node *kapi.Node) (hostsubnet *net.IPNet, err error) {
 	oc.clearInitialNodeNetworkUnavailableCondition(node, nil)
 
 	hostsubnet, _ = util.ParseNodeHostSubnetAnnotation(node)
@@ -651,7 +650,7 @@ func (oc *Controller) deleteNodeLogicalNetwork(nodeName string) error {
 	return nil
 }
 
-func (oc *Controller) deleteNode(nodeName string, nodeSubnet, joinSubnet *net.IPNet) error {
+func (oc *Controller) doDeleteNode(nodeName string, nodeSubnet, joinSubnet *net.IPNet) error {
 	// Clean up as much as we can but don't hard error
 	if nodeSubnet != nil {
 		if err := oc.deleteNodeHostSubnet(nodeName, nodeSubnet); err != nil {
@@ -876,7 +875,7 @@ func (oc *Controller) syncNodes(nodes []interface{}) {
 	}
 
 	for nodeName, nodeSubnets := range NodeSubnetsMap {
-		if err := oc.deleteNode(nodeName, nodeSubnets.hostSubnet, nodeSubnets.joinSubnet); err != nil {
+		if err := oc.doDeleteNode(nodeName, nodeSubnets.hostSubnet, nodeSubnets.joinSubnet); err != nil {
 			klog.Error(err)
 		}
 		//remove the node from the chassis map so we don't delete it twice

@@ -159,8 +159,7 @@ func setupManagementPortConfig(cfg *managementPortConfig) ([]string, error) {
 // createPlatformManagementPort creates a management port attached to the node switch
 // that lets the node access its pods via their private IP address. This is used
 // for health checking and other management tasks.
-func createPlatformManagementPort(interfaceName, interfaceIP, routerIP, routerMAC string,
-	stopChan chan struct{}) error {
+func createPlatformManagementPort(interfaceName, interfaceIP, routerIP, routerMAC string, stopChan <-chan struct{}) error {
 	var cfg *managementPortConfig
 	var err error
 
@@ -205,7 +204,7 @@ func DelMgtPortIptRules() {
 // 1. route entries to cluster CIDR and service CIDR through management port
 // 2. ARP entry for the node subnet's gateway ip
 // 3. IPtables chain and rule for SNATing packets entering the logical topology
-func checkManagementPortHealth(cfg *managementPortConfig, stopChan chan struct{}) {
+func checkManagementPortHealth(cfg *managementPortConfig, stopChan <-chan struct{}) {
 	for {
 		select {
 		case <-time.After(30 * time.Second):

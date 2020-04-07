@@ -8,7 +8,7 @@ import (
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -176,7 +176,7 @@ var _ = Describe("OVN Namespace Operations", func() {
 						},
 					},
 				)
-				fakeOvn.controller.WatchServices()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.CoreV1().Services(service.Namespace).Get(service.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -213,7 +213,7 @@ var _ = Describe("OVN Namespace Operations", func() {
 						},
 					},
 				)
-				fakeOvn.controller.WatchServices()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.CoreV1().Services(service.Namespace).Get(service.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())

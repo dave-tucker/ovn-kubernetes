@@ -3,7 +3,7 @@ package ovn
 import (
 	"fmt"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
@@ -136,7 +136,7 @@ var _ = Describe("OVN Namespace Operations", func() {
 						},
 					},
 				)
-				fakeOvn.controller.WatchEndpoints()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.CoreV1().Endpoints(endpointsT.Namespace).Get(endpointsT.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -192,7 +192,7 @@ var _ = Describe("OVN Namespace Operations", func() {
 						},
 					},
 				)
-				fakeOvn.controller.WatchEndpoints()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				_, err := fakeOvn.fakeClient.CoreV1().Endpoints(endpointsT.Namespace).Get(endpointsT.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())

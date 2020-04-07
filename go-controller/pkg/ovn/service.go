@@ -252,9 +252,8 @@ func (ovn *Controller) createService(service *kapi.Service) error {
 						svcPort.Port, protocol)
 					if err != nil {
 						return fmt.Errorf("failed to create service ACL")
-					} else {
-						klog.V(5).Infof("Service Reject ACL created for cluster IP: %s", aclUUID)
 					}
+					klog.V(5).Infof("Service Reject ACL created for cluster IP: %s", aclUUID)
 				}
 				for _, extIP := range service.Spec.ExternalIPs {
 					exLoadBalancer := ovn.getDefaultGatewayLoadBalancer(svcPort.Protocol)
@@ -271,9 +270,8 @@ func (ovn *Controller) createService(service *kapi.Service) error {
 						aclUUID, err := ovn.createLoadBalancerRejectACL(exLoadBalancer, extIP, svcPort.Port, protocol)
 						if err != nil {
 							return fmt.Errorf("failed to create service ACL for external IP")
-						} else {
-							klog.V(5).Infof("Service Reject ACL created for external IP: %s", aclUUID)
 						}
+						klog.V(5).Infof("Service Reject ACL created for external IP: %s", aclUUID)
 					}
 				}
 			}
@@ -291,9 +289,9 @@ func (ovn *Controller) updateService(oldSvc, newSvc *kapi.Service) error {
 	return nil
 }
 
-func (ovn *Controller) deleteService(service *kapi.Service) {
+func (ovn *Controller) deleteService(service *kapi.Service) error {
 	if !util.IsClusterIPSet(service) || len(service.Spec.Ports) == 0 {
-		return
+		return nil
 	}
 
 	ips := make([]string, 0)
@@ -324,15 +322,15 @@ func (ovn *Controller) deleteService(service *kapi.Service) {
 		if util.ServiceTypeHasClusterIP(service) {
 			loadBalancer, err := ovn.getLoadBalancer(protocol)
 			if err != nil {
-				klog.Errorf("Failed to get load-balancer for %s (%v)",
+				return fmt.Errorf("Failed to get load-balancer for %s (%v)",
 					protocol, err)
-				break
 			}
 			vip := util.JoinHostPortInt32(service.Spec.ClusterIP, svcPort.Port)
 			ovn.deleteLoadBalancerVIP(loadBalancer, vip)
 			ovn.handleExternalIPs(service, svcPort, ips, targetPort, true)
 		}
 	}
+	return nil
 }
 
 // svcQualifiesForReject determines if a service should have a reject ACL on it when it has no endpoints

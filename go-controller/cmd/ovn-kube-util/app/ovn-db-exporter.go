@@ -2,17 +2,18 @@ package app
 
 import (
 	"fmt"
-	"k8s.io/klog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"k8s.io/klog"
+
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/metrics"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	kexec "k8s.io/utils/exec"
 )
 
@@ -334,7 +335,7 @@ var OvnDBExporterCommand = cli.Command{
 	Name:  "ovn-db-exporter",
 	Usage: "",
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "metrics-bind-address",
 			Usage: `The IP address and port for the metrics server to serve on (default ":9476")`,
 		},

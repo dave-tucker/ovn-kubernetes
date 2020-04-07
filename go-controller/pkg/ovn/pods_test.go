@@ -3,7 +3,7 @@ package ovn
 import (
 	"fmt"
 
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
@@ -219,7 +219,8 @@ var _ = Describe("OVN Pod Operations", func() {
 						*newPod(t.namespace, t.podName, t.nodeName, t.podIP),
 					},
 				})
-				fakeOvn.controller.WatchPods()
+
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err := fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -273,7 +274,7 @@ var _ = Describe("OVN Pod Operations", func() {
 					Items: []v1.Pod{},
 				})
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, _ := fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(pod).To(BeNil())
@@ -328,7 +329,7 @@ var _ = Describe("OVN Pod Operations", func() {
 					},
 				})
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err := fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -384,7 +385,7 @@ var _ = Describe("OVN Pod Operations", func() {
 					},
 				})
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 				Expect(fExec.CalledMatchesExpected()).To(BeTrue(), fExec.ErrorDesc)
 
 				// Pod creation should be retried on Update event
@@ -448,7 +449,7 @@ var _ = Describe("OVN Pod Operations", func() {
 				_, ok := pod.Annotations[util.OvnPodAnnotationName]
 				Expect(ok).To(BeFalse())
 
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err = fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -487,7 +488,7 @@ var _ = Describe("OVN Pod Operations", func() {
 				t.delCmds(fExec)
 
 				fakeOvn.start(ctx)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				Expect(fExec.CalledMatchesExpected()).To(BeTrue(), fExec.ErrorDesc)
 
@@ -525,7 +526,7 @@ var _ = Describe("OVN Pod Operations", func() {
 					},
 				})
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err := fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -572,7 +573,7 @@ var _ = Describe("OVN Pod Operations", func() {
 					},
 				})
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err := fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -597,7 +598,7 @@ var _ = Describe("OVN Pod Operations", func() {
 
 				fakeOvn.restart()
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err = fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -642,7 +643,7 @@ var _ = Describe("OVN Pod Operations", func() {
 					},
 				})
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err := fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -667,7 +668,7 @@ var _ = Describe("OVN Pod Operations", func() {
 
 				fakeOvn.restart()
 				t.populateLogicalSwitchCache(fakeOvn)
-				fakeOvn.controller.WatchPods()
+				go fakeOvn.controller.Run(fakeOvn.stopChan)
 
 				pod, err = fakeOvn.fakeClient.CoreV1().Pods(t.namespace).Get(t.podName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())

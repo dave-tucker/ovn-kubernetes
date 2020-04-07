@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,14 +15,15 @@ import (
 	"text/template"
 	"time"
 
+	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	"gopkg.in/fsnotify/fsnotify.v1"
 
 	hocontroller "github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/controller"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
+	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/informer"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/metrics"
 	ovnnode "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/node"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/ovn"
@@ -101,7 +103,25 @@ func main() {
 		return runOvnKube(c)
 	}
 
-	if err := c.Run(os.Args); err != nil {
+	ctx := context.Background()
+
+	// trap Ctrl+C and call cancel on the context
+	ctx, cancel := context.WithCancel(ctx)
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	defer func() {
+		signal.Stop(ch)
+		cancel()
+	}()
+	go func() {
+		select {
+		case <-ch:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	if err := c.RunContext(ctx, os.Args); err != nil {
 		klog.Exit(err)
 	}
 }
@@ -177,12 +197,7 @@ func runOvnKube(ctx *cli.Context) error {
 		return err
 	}
 
-	// create factory and start the controllers asked for
 	stopChan := make(chan struct{})
-	factory, err := factory.NewWatchFactory(clientset, stopChan)
-	if err != nil {
-		return err
-	}
 
 	master := ctx.String("init-master")
 	node := ctx.String("init-node")
@@ -209,18 +224,28 @@ func runOvnKube(ctx *cli.Context) error {
 		return fmt.Errorf("unable to setup configuration watch: %v", err)
 	}
 
+	f := informers.NewSharedInformerFactory(clientset, informer.DefaultResyncInterval)
+
+	var ovnController *ovn.Controller
 	if master != "" {
 		if runtime.GOOS == "windows" {
 			return fmt.Errorf("Windows is not supported as master node")
 		}
 		// register prometheus metrics exported by the master
 		metrics.RegisterMasterMetrics()
-		ovnController := ovn.NewOvnController(clientset, factory, stopChan)
-		if err := ovnController.Start(clientset, master); err != nil {
-			return err
-		}
+		ovnController = ovn.NewOvnController(
+			clientset,
+			f.Core().V1().Nodes().Informer(),
+			f.Core().V1().Pods().Informer(),
+			f.Core().V1().Services().Informer(),
+			f.Core().V1().Endpoints().Informer(),
+			f.Core().V1().Namespaces().Informer(),
+			f.Networking().V1().NetworkPolicies().Informer(),
+			stopChan,
+		)
 	}
 
+	var nodeController *ovnnode.OvnNode
 	if node != "" {
 		if config.Kubernetes.Token == "" {
 			return fmt.Errorf("cannot initialize node without service account 'token'. Please provide one with --k8s-token argument")
@@ -229,13 +254,47 @@ func runOvnKube(ctx *cli.Context) error {
 		metrics.RegisterNodeMetrics()
 		// register ovn specific (ovn-controller and ovn-northd) metrics
 		metrics.RegisterOvnMetrics()
-		start := time.Now()
-		n := ovnnode.NewNode(clientset, factory, node, stopChan)
-		if err := n.Start(); err != nil {
+		nodeController = ovnnode.NewNode(
+			clientset,
+			node,
+			f.Core().V1().Endpoints().Informer(),
+			f.Core().V1().Services().Informer(),
+		)
+	}
+
+	var hoController *hocontroller.HybridOverlayController
+	if config.HybridOverlay.Enabled {
+		var err error
+		hoController, err = hocontroller.NewHybridOverlayController(
+			master != "",
+			node,
+			clientset,
+			f.Core().V1().Nodes().Informer(),
+			f.Core().V1().Pods().Informer(),
+		)
+		if err != nil {
 			return err
 		}
+	}
+
+	// Start the informers
+	f.Start(stopChan)
+
+	if ovnController != nil {
+		go ovnController.Start(clientset, master, stopChan)
+	}
+
+	if nodeController != nil {
+		start := time.Now()
+		go nodeController.Start(stopChan)
+		// TODO: we should probably pass the metrics to the nodeController to return readiness
+		// as start is async this metric is meaningless
 		end := time.Since(start)
 		metrics.MetricNodeReadyDuration.Set(end.Seconds())
+	}
+
+	if hoController != nil {
+		go hoController.Run(stopChan)
 	}
 
 	// now that ovnkube master/node are running, lets expose the metrics HTTP endpoint if configured
@@ -244,14 +303,14 @@ func runOvnKube(ctx *cli.Context) error {
 		metrics.StartMetricsServer(config.Kubernetes.MetricsBindAddress, config.Kubernetes.MetricsEnablePprof)
 	}
 
-	if config.HybridOverlay.Enabled {
-		if err := hocontroller.StartHybridOverlay(master != "", node, clientset, factory); err != nil {
-			return err
-		}
+	// run until cancelled
+	select {
+	case <-ctx.Context.Done():
+		stopChan <- struct{}{}
+	default:
+		// noop
 	}
-
-	// run forever
-	select {}
+	return nil
 }
 
 // watchForChanges exits if the configuration file changed.

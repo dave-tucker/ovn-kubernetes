@@ -6,12 +6,10 @@ import (
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/types"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 
 	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
 )
 
 // ParseHybridOverlayHostSubnet returns the parsed hybrid overlay hostsubnet if
@@ -65,31 +63,4 @@ func GetNodeInternalIP(node *kapi.Node) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("failed to read node %q InternalIP", node.Name)
-}
-
-// StartNodeWatch starts a node event handler
-func StartNodeWatch(h types.NodeHandler, wf *factory.WatchFactory) error {
-	_, err := wf.AddNodeHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			node := obj.(*kapi.Node)
-			h.Add(node)
-		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			oldNode := oldObj.(*kapi.Node)
-			newNode := newObj.(*kapi.Node)
-			h.Update(oldNode, newNode)
-		},
-		DeleteFunc: func(obj interface{}) {
-			node := obj.(*kapi.Node)
-			h.Delete(node)
-		},
-	}, func(objs []interface{}) {
-		nodeList := make([]*kapi.Node, 0, len(objs))
-		for _, obj := range objs {
-			node := obj.(*kapi.Node)
-			nodeList = append(nodeList, node)
-		}
-		h.Sync(nodeList)
-	})
-	return err
 }

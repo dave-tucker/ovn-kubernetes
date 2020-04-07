@@ -3,7 +3,7 @@ package ovn
 import (
 	"fmt"
 
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
@@ -156,7 +156,10 @@ var _ = Describe("OVN Namespace Operations", func() {
 				)
 				podMAC := ovntest.MustParseMAC("11:22:33:44:55:66")
 				fakeOvn.controller.logicalPortCache.add(tP.nodeName, tP.portName, fakeUUID, podMAC, ovntest.MustParseIP(tP.podIP))
-				fakeOvn.controller.WatchNamespaces()
+
+				stopChan := make(chan struct{})
+				defer close(stopChan)
+				go fakeOvn.controller.Run(stopChan)
 
 				_, err := fakeOvn.fakeClient.CoreV1().Namespaces().Get(namespaceT.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -183,7 +186,9 @@ var _ = Describe("OVN Namespace Operations", func() {
 						namespaceT,
 					},
 				})
-				fakeOvn.controller.WatchNamespaces()
+				stopChan := make(chan struct{})
+				defer close(stopChan)
+				go fakeOvn.controller.Run(stopChan)
 
 				_, err := fakeOvn.fakeClient.CoreV1().Namespaces().Get(namespaceT.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -214,7 +219,9 @@ var _ = Describe("OVN Namespace Operations", func() {
 						namespaceT,
 					},
 				})
-				fakeOvn.controller.WatchNamespaces()
+				stopChan := make(chan struct{})
+				defer close(stopChan)
+				go fakeOvn.controller.Run(stopChan)
 
 				namespace, err := fakeOvn.fakeClient.CoreV1().Namespaces().Get(namespaceT.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())

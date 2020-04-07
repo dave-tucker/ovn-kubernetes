@@ -3,15 +3,16 @@ package ovn
 import (
 	"fmt"
 
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	kubetesting "k8s.io/client-go/testing"
 
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
+	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/informer"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	ovntest "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/testing"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
@@ -250,11 +251,19 @@ var _ = Describe("Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
 
-			clusterController := NewOvnController(fakeClient, f, stopChan)
+			clusterController := NewOvnController(
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+				f.Core().V1().Services().Informer(),
+				f.Core().V1().Endpoints().Informer(),
+				f.Core().V1().Namespaces().Informer(),
+				f.Networking().V1().NetworkPolicies().Informer(),
+				stopChan,
+			)
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -263,8 +272,8 @@ var _ = Describe("Master Operations", func() {
 			err = clusterController.StartClusterMaster("master")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = clusterController.WatchNodes()
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+			go clusterController.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 			updatedNode, err := fakeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
@@ -332,11 +341,19 @@ var _ = Describe("Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
 
-			clusterController := NewOvnController(fakeClient, f, stopChan)
+			clusterController := NewOvnController(
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+				f.Core().V1().Services().Informer(),
+				f.Core().V1().Endpoints().Informer(),
+				f.Core().V1().Namespaces().Informer(),
+				f.Networking().V1().NetworkPolicies().Informer(),
+				stopChan,
+			)
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -345,8 +362,8 @@ var _ = Describe("Master Operations", func() {
 			err = clusterController.StartClusterMaster("master")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = clusterController.WatchNodes()
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+			go clusterController.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 			updatedNode, err := fakeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
@@ -415,9 +432,8 @@ var _ = Describe("Master Operations", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
 
 			fakeClient.PrependReactor("patch", "nodes", func(action kubetesting.Action) (bool, kuberuntime.Object, error) {
 				// Should not be called again as the node already has a subnet
@@ -425,7 +441,17 @@ var _ = Describe("Master Operations", func() {
 				return true, nil, fmt.Errorf("should not be called")
 			})
 
-			clusterController := NewOvnController(fakeClient, f, stopChan)
+			clusterController := NewOvnController(
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+				f.Core().V1().Services().Informer(),
+				f.Core().V1().Endpoints().Informer(),
+				f.Core().V1().Namespaces().Informer(),
+				f.Networking().V1().NetworkPolicies().Informer(),
+				stopChan,
+			)
+			Expect(clusterController).NotTo(BeNil())
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -434,8 +460,8 @@ var _ = Describe("Master Operations", func() {
 			err = clusterController.StartClusterMaster("master")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = clusterController.WatchNodes()
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+			go clusterController.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 			updatedNode, err := fakeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
@@ -605,11 +631,19 @@ subnet=%s
 			Expect(err).NotTo(HaveOccurred())
 
 			stopChan := make(chan struct{})
-			f, err := factory.NewWatchFactory(fakeClient, stopChan)
-			Expect(err).NotTo(HaveOccurred())
 			defer close(stopChan)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
 
-			clusterController := NewOvnController(fakeClient, f, stopChan)
+			clusterController := NewOvnController(
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+				f.Core().V1().Services().Informer(),
+				f.Core().V1().Endpoints().Informer(),
+				f.Core().V1().Namespaces().Informer(),
+				f.Networking().V1().NetworkPolicies().Informer(),
+				stopChan,
+			)
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -618,8 +652,8 @@ subnet=%s
 			_ = clusterController.joinSubnetAllocator.AddNetworkRange("100.64.0.0/16", 3)
 
 			// Let the real code run and ensure OVN database sync
-			err = clusterController.WatchNodes()
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+			go clusterController.Run(stopChan)
 
 			Expect(fexec.CalledMatchesExpected()).To(BeTrue(), fexec.ErrorDesc)
 
@@ -800,12 +834,20 @@ var _ = Describe("Gateway Init Operations", func() {
 				Output: "169.254.33.2",
 			})
 
-			stop := make(chan struct{})
-			wf, err := factory.NewWatchFactory(fakeClient, stop)
-			Expect(err).NotTo(HaveOccurred())
-			defer close(stop)
+			stopChan := make(chan struct{})
+			defer close(stopChan)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
 
-			clusterController := NewOvnController(fakeClient, wf, stop)
+			clusterController := NewOvnController(
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+				f.Core().V1().Services().Informer(),
+				f.Core().V1().Endpoints().Informer(),
+				f.Core().V1().Namespaces().Informer(),
+				f.Networking().V1().NetworkPolicies().Informer(),
+				stopChan,
+			)
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -814,8 +856,8 @@ var _ = Describe("Gateway Init Operations", func() {
 			_ = clusterController.joinSubnetAllocator.AddNetworkRange("100.64.0.0/16", 3)
 
 			// Let the real code run and ensure OVN database sync
-			err = clusterController.WatchNodes()
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+			go clusterController.Run(stopChan)
 
 			subnet := ovntest.MustParseIPNet(nodeSubnet)
 			err = clusterController.syncGatewayLogicalNetwork(updatedNode, l3GatewayConfig, subnet.String())
@@ -992,12 +1034,20 @@ var _ = Describe("Gateway Init Operations", func() {
 				Output: "169.254.33.2",
 			})
 
-			stop := make(chan struct{})
-			wf, err := factory.NewWatchFactory(fakeClient, stop)
-			Expect(err).NotTo(HaveOccurred())
-			defer close(stop)
+			stopChan := make(chan struct{})
+			defer close(stopChan)
+			f := informers.NewSharedInformerFactory(fakeClient, informer.DefaultResyncInterval)
 
-			clusterController := NewOvnController(fakeClient, wf, stop)
+			clusterController := NewOvnController(
+				fakeClient,
+				f.Core().V1().Nodes().Informer(),
+				f.Core().V1().Pods().Informer(),
+				f.Core().V1().Services().Informer(),
+				f.Core().V1().Endpoints().Informer(),
+				f.Core().V1().Namespaces().Informer(),
+				f.Networking().V1().NetworkPolicies().Informer(),
+				stopChan,
+			)
 			Expect(clusterController).NotTo(BeNil())
 			clusterController.TCPLoadBalancerUUID = tcpLBUUID
 			clusterController.UDPLoadBalancerUUID = udpLBUUID
@@ -1006,8 +1056,8 @@ var _ = Describe("Gateway Init Operations", func() {
 			_ = clusterController.joinSubnetAllocator.AddNetworkRange("100.64.0.0/16", 3)
 
 			// Let the real code run and ensure OVN database sync
-			err = clusterController.WatchNodes()
-			Expect(err).NotTo(HaveOccurred())
+			f.Start(stopChan)
+			go clusterController.Run(stopChan)
 
 			subnet := ovntest.MustParseIPNet(nodeSubnet)
 			err = clusterController.syncGatewayLogicalNetwork(updatedNode, l3GatewayConfig, subnet.String())

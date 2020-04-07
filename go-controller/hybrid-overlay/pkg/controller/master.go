@@ -7,7 +7,6 @@ import (
 	"github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/types"
 	houtil "github.com/ovn-org/ovn-kubernetes/go-controller/hybrid-overlay/pkg/util"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/config"
-	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/kube"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/ovn/allocator"
 	"github.com/ovn-org/ovn-kubernetes/go-controller/pkg/util"
@@ -59,11 +58,6 @@ func NewMaster(clientset kubernetes.Interface) (*MasterController, error) {
 	return m, nil
 }
 
-// Start is the top level function to run hybrid overlay in master mode
-func (m *MasterController) Start(wf *factory.WatchFactory) error {
-	return houtil.StartNodeWatch(m, wf)
-}
-
 // hybridOverlayNodeEnsureSubnet allocates a subnet and sets the
 // hybrid overlay subnet annotation. It returns any newly allocated subnet
 // or an error. If an error occurs, the newly allocated subnet will be released.
@@ -103,7 +97,7 @@ func (m *MasterController) handleOverlayPort(node *kapi.Node, annotator kube.Ann
 	if subnet == nil || err != nil {
 		// No subnet allocated yet; clean up
 		if haveDRMACAnnotation {
-			m.deleteOverlayPort(node)
+			m.deleteOverlayPort(node.Name)
 			annotator.Delete(types.HybridOverlayDRMAC)
 		}
 		return nil
@@ -149,14 +143,14 @@ func (m *MasterController) handleOverlayPort(node *kapi.Node, annotator kube.Ann
 	return nil
 }
 
-func (m *MasterController) deleteOverlayPort(node *kapi.Node) {
-	klog.Infof("removing node %s hybrid overlay port", node.Name)
-	portName := houtil.GetHybridOverlayPortName(node.Name)
+func (m *MasterController) deleteOverlayPort(node string) {
+	klog.Infof("removing node %s hybrid overlay port", node)
+	portName := houtil.GetHybridOverlayPortName(node)
 	_, _, _ = util.RunOVNNbctl("--", "--if-exists", "lsp-del", portName)
 }
 
-// Add handles node additions
-func (m *MasterController) Add(node *kapi.Node) {
+// AddNode handles node additions
+func (m *MasterController) AddNode(node *kapi.Node) error {
 	annotator := kube.NewNodeAnnotator(m.kube, node)
 
 	var err error
@@ -164,13 +158,11 @@ func (m *MasterController) Add(node *kapi.Node) {
 	if houtil.IsHybridOverlayNode(node) {
 		allocatedSubnet, err = m.hybridOverlayNodeEnsureSubnet(node, annotator)
 		if err != nil {
-			klog.Errorf("failed to update node %q hybrid overlay subnet annotation: %v", node.Name, err)
-			return
+			return fmt.Errorf("failed to update node %q hybrid overlay subnet annotation: %v", node.Name, err)
 		}
 	} else {
 		if err = m.handleOverlayPort(node, annotator); err != nil {
-			klog.Errorf("failed to set up hybrid overlay logical switch port for %s: %v", node.Name, err)
-			return
+			return fmt.Errorf("failed to set up hybrid overlay logical switch port for %s: %v", node.Name, err)
 		}
 	}
 
@@ -179,30 +171,39 @@ func (m *MasterController) Add(node *kapi.Node) {
 		if allocatedSubnet != nil {
 			_ = m.releaseNodeSubnet(node.Name, allocatedSubnet)
 		}
-		klog.Errorf("failed to set hybrid overlay annotations for %s: %v", node.Name, err)
+		return fmt.Errorf("failed to set hybrid overlay annotations for %s: %v", node.Name, err)
 	}
+	return nil
 }
 
-// Update handles node updates
-func (m *MasterController) Update(oldNode, newNode *kapi.Node) {
-	m.Add(newNode)
-}
-
-// Delete handles node deletions
-func (m *MasterController) Delete(node *kapi.Node) {
+// DeleteNode handles node deletions
+func (m *MasterController) DeleteNode(node *kapi.Node) error {
 	if subnet, _ := houtil.ParseHybridOverlayHostSubnet(node); subnet != nil {
 		if err := m.releaseNodeSubnet(node.Name, subnet); err != nil {
-			klog.Errorf(err.Error())
+			return err
 		}
 	}
 
 	if _, ok := node.Annotations[types.HybridOverlayDRMAC]; ok && !houtil.IsHybridOverlayNode(node) {
-		m.deleteOverlayPort(node)
+		m.deleteOverlayPort(node.Name)
 	}
+	return nil
 }
 
 // Sync handles synchronizing the initial node list
 func (m *MasterController) Sync(nodes []*kapi.Node) {
 	// Unused because our initial node list sync needs to return
 	// errors which this function cannot do
+}
+
+// AddPod handles the pod add event
+func (m *MasterController) AddPod(pod *kapi.Pod) error {
+	// noop
+	return nil
+}
+
+// DeletePod handles the delete pod event
+func (m *MasterController) DeletePod(pod *kapi.Pod) error {
+	// noop
+	return nil
 }
