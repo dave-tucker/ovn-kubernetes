@@ -23,7 +23,15 @@ const (
 	defaultOpenFlowCookie = "0xdeff105"
 )
 
-func addService(service *kapi.Service, inport, outport, gwBridge string, nodeIP *net.IPNet) {
+type sharedGatewayNodePortWatcher struct {
+	patchPort string
+	ofPortPatch string
+	ofPortPhys string
+	gatewayBridge string
+	nodeIP *net.IP
+}
+
+func (npw *sharedGatewayNodePortWatcher) AddService(service *kapi.Service) {
 	if !util.ServiceTypeHasNodePort(service) && len(service.Spec.ExternalIPs) == 0 {
 		return
 	}
@@ -61,7 +69,7 @@ func addService(service *kapi.Service, inport, outport, gwBridge string, nodeIP 
 	addSharedGatewayIptRules(service, nodeIP)
 }
 
-func deleteService(service *kapi.Service, inport, gwBridge string, nodeIP *net.IPNet) {
+func (npw *sharedGatewayNodePortWatcher) DeleteService(service *kapi.Service) {
 	if !util.ServiceTypeHasNodePort(service) && len(service.Spec.ExternalIPs) == 0 {
 		return
 	}
@@ -99,7 +107,7 @@ func deleteService(service *kapi.Service, inport, gwBridge string, nodeIP *net.I
 	delSharedGatewayIptRules(service, nodeIP)
 }
 
-func syncServices(services []interface{}, inport, gwBridge string, nodeIP *net.IPNet) {
+func (npw *sharedGatewayNodePortWatcher) syncServices(services []interface{}) {
 	ports := make(map[string]string)
 	for _, serviceInterface := range services {
 		service, ok := serviceInterface.(*kapi.Service)
@@ -194,12 +202,18 @@ func syncServices(services []interface{}, inport, gwBridge string, nodeIP *net.I
 	}
 }
 
-func nodePortWatcher(nodeName, gwBridge, gwIntf string, nodeIP []*net.IPNet, wf *factory.WatchFactory) error {
+func newSharedGatewayNodePortWatcher(nodeName, gwBridge, gwIntf string, nodeIP []*net.IPNet) error {
+	npw = sharedGatewayNodePortWatcher{
+		gatewayBridge: gwBridge,
+		nodeIP: nodeIP,
+	}
 	// the name of the patch port created by ovn-controller is of the form
 	// patch-<logical_port_name_of_localnet_port>-to-br-int
-	patchPort := "patch-" + gwBridge + "_" + nodeName + "-to-br-int"
+	npw.patchPort := "patch-" + gwBridge + "_" + nodeName + "-to-br-int"
 	// Get ofport of patchPort
-	ofportPatch, stderr, err := util.RunOVSVsctl("--if-exists", "get",
+	var stderr string
+	var error error
+	npw.ofPortPatch, stderr, err = util.RunOVSVsctl("--if-exists", "get",
 		"interface", patchPort, "ofport")
 	if err != nil {
 		return fmt.Errorf("failed to get ofport of %s, stderr: %q, error: %v",
@@ -207,7 +221,7 @@ func nodePortWatcher(nodeName, gwBridge, gwIntf string, nodeIP []*net.IPNet, wf 
 	}
 
 	// Get ofport of physical interface
-	ofportPhys, stderr, err := util.RunOVSVsctl("--if-exists", "get",
+	npw.ofPortPhys, stderr, err := util.RunOVSVsctl("--if-exists", "get",
 		"interface", gwIntf, "ofport")
 	if err != nil {
 		return fmt.Errorf("failed to get ofport of %s, stderr: %q, error: %v",

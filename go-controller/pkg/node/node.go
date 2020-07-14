@@ -32,6 +32,7 @@ type OvnNode struct {
 	watchFactory *factory.WatchFactory
 	stopChan     chan struct{}
 	recorder     record.EventRecorder
+	nodePortWatcher nodePortWatcher
 }
 
 // NewNode creates a new controller for node management
