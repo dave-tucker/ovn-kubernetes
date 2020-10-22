@@ -4,7 +4,7 @@ run_kubectl() {
   local retries=0
   local attempts=10
   while true; do
-    if kubectl "$@"; then
+    if kubectl --context kind-${KIND_CLUSTER_NAME} "$@"; then
       break
     fi
 
@@ -24,7 +24,7 @@ run_kubectl() {
 # with Fedora32 Cloud, but it does not happen if we clean first the ovn-kubernetes resources.
 delete()
 {
-  kubectl --kubeconfig ${HOME}/admin.conf delete namespace ovn-kubernetes
+  kubectl --context kind-${KIND_CLUSTER_NAME:-ovn} delete namespace ovn-kubernetes
   sleep 5
   kind delete cluster --name ${KIND_CLUSTER_NAME:-ovn}
 }
@@ -277,9 +277,8 @@ ovn_apiServerAddress=${API_IP} \
   j2 ${KIND_CONFIG} -o ${KIND_CONFIG_LCL}
 
 # Create KIND cluster. For additional debug, add '--verbosity <int>': 0 None .. 3 Debug
-export KUBECONFIG=${HOME}/admin.conf
-kind create cluster --name ${KIND_CLUSTER_NAME} --kubeconfig ${KUBECONFIG} --image kindest/node:${K8S_VERSION} --config=${KIND_CONFIG_LCL}
-cat ${KUBECONFIG}
+kind create cluster --name ${KIND_CLUSTER_NAME} --image kindest/node:${K8S_VERSION} --config=${KIND_CONFIG_LCL}
+kind get kubeconfig --name ${KIND_CLUSTER_NAME}
 
 if [ "${GITHUB_ACTIONS:-false}" == "true" ]; then
   # Patch CoreDNS to work in Github CI
@@ -384,7 +383,6 @@ popd
 run_kubectl -n kube-system delete ds kube-proxy
 kind get clusters
 kind get nodes --name ${KIND_CLUSTER_NAME}
-kind export kubeconfig --name ${KIND_CLUSTER_NAME}
 if [ "$KIND_INSTALL_INGRESS" == true ]; then
   run_kubectl apply -f ingress/mandatory.yaml
   run_kubectl apply -f ingress/service-nodeport.yaml
