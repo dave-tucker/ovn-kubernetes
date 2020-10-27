@@ -2,12 +2,12 @@
 
 KIND (Kubernetes in Docker) deployment of OVN kubernetes is a fast and easy means to quickly install and test kubernetes with OVN kubernetes CNI.  The value proposition is really for developers who want to reproduce an issue or test a fix in an environment that can be brought up locally and within a few minutes.
 
-### Prerequisites 
+### Prerequisites
 
 - 20 GB of free space in root file system
 - Docker run time
 - [KIND]( https://kubernetes.io/docs/setup/learning-environment/kind/ )
-   - Installation instructions can be found at https://github.com/kubernetes-sigs/kind#installation-and-usage. 
+   - Installation instructions can be found at https://github.com/kubernetes-sigs/kind#installation-and-usage.
    - NOTE: The OVN-Kubernetes [ovn-kubernetes/contrib/kind.sh](https://github.com/ovn-org/ovn-kubernetes/blob/master/contrib/kind.sh) and [ovn-kubernetes/contrib/kind.yaml](https://github.com/ovn-org/ovn-kubernetes/blob/master/contrib/kind.yaml) files provision port 11337. If firewalld is enabled, this port will need to be unblocked:
 
       ```
@@ -18,11 +18,11 @@ KIND (Kubernetes in Docker) deployment of OVN kubernetes is a fast and easy mean
 
 **NOTE :**  In certain operating systems such as CentOS 8.x, pip2 and pip3 binaries are installed instead of pip. In such situations create a softlink for "pip" that points to "pip2".
 
-### Run the KIND deployment 
+### Run the KIND deployment
 
 For OVN kubernetes KIND deployment, use the `kind.sh` script.
 
-First Download and build the OVN-Kubernetes repo: 
+First Download and build the OVN-Kubernetes repo:
 
 ```
 $ go get github.com/ovn-org/ovn-kubernetes; cd GOPATH/src/github.com/ovn-org/ovn-kubernetes
@@ -45,7 +45,6 @@ Launch the KIND Deployment.
 
 ```
 $ pushd contrib
-$ KUBECONFIG=${HOME}/admin.conf
 $ ./kind.sh
 $ popd
 ```
@@ -97,13 +96,13 @@ usage: kind.sh [[[-cf|--config-file <file>] [-kt|keep-taint] [-ha|--ha-enabled]
 ```
 As seen above if you do not specify any options script will assume the default values.
 
-### Usage Notes 
+### Usage Notes
 
 - You can create your own KIND J2 configuration file if the default one is not sufficient
 
 - You can also specify these values as environment variables. Command line parameters will override the environment variables.
 
-- To tear down the KIND cluster when finished simply run 
+- To tear down the KIND cluster when finished simply run
 
    ```
    $ ./kind.sh --delete
@@ -228,12 +227,20 @@ $ cd ../../contrib/
 $ KIND_IPV4_SUPPORT=false KIND_IPV6_SUPPORT=true ./kind.sh
 ```
 
-Once `kind.sh` completes, setup kube config file:
+Once `kind.sh` completes, switch `kubectl` to use the cluster by default with:
 
 ```
-$ cp ~/admin.conf ~/.kube/config
--- OR --
-$ KUBECONFIG=~/admin.conf
+$ kind export kubeconfig --name ovn
+```
+or
+```
+$ kubectl config set-context kind-ovn
+```
+
+alternatively you can provide the context in each `kubectl` usage.
+
+```
+$ kubectl --context kind-ovn ...
 ```
 
 Once testing is complete, to tear down the KIND deployment:
@@ -331,13 +338,22 @@ $ cd ../../contrib/
 $ KIND_IPV4_SUPPORT=true KIND_IPV6_SUPPORT=true K8S_VERSION=v1.18.0 ./kind.sh
 ```
 
-Once `kind.sh` completes, setup kube config file:
+Once `kind.sh` completes, switch `kubectl` to use the cluster by default with:
 
 ```
-$ cp ~/admin.conf ~/.kube/config
--- OR --
-$ KUBECONFIG=~/admin.conf
+$ kind export kubeconfig --name ovn
 ```
+or
+```
+$ kubectl config set-context kind-ovn
+```
+
+alternatively you can provide the context in each `kubectl` usage.
+
+```
+$ kubectl --context kind-ovn ...
+```
+
 
 Once testing is complete, to tear down the KIND deployment:
 

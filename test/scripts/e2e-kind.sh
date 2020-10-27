@@ -3,9 +3,9 @@
 set -ex
 
 SHARD=$1
+KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:-ovn}
 
 pushd $GOPATH/src/k8s.io/kubernetes/
-export KUBECONFIG=${HOME}/admin.conf
 export MASTER_NAME=${KIND_CLUSTER_NAME}-control-plane
 export NODE_NAMES=${MASTER_NAME}
 
@@ -119,6 +119,9 @@ case "$SHARD" in
 		exit 1
 	;;
 esac
+
+# set kubectl to use kind
+kind export kubeconfig --name ${KIND_CLUSTER_NAME}
 
 # setting this env prevents ginkgo e2e from trying to run provider setup
 export KUBERNETES_CONFORMANCE_TEST='y'
