@@ -75,20 +75,14 @@ type tNode struct {
 	DnatSnatIP           string
 }
 
-const (
-	// ovnNodeID is the id (of type integer) of a node. It is set by cluster-manager.
-	ovnNodeID            = "k8s.ovn.org/node-id"
-	ovnNodePrimaryIfAddr = "k8s.ovn.org/node-primary-ifaddr"
-)
-
 func (n tNode) k8sNode(nodeID string) corev1.Node {
 	node := corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: n.Name,
 			Annotations: map[string]string{
-				ovnNodeID:             nodeID,
+				util.OvnNodeID:        nodeID,
 				util.OVNNodeHostCIDRs: fmt.Sprintf("[\"%s\"]", fmt.Sprintf("%s/24", n.NodeIP)),
-				ovnNodePrimaryIfAddr:  fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", fmt.Sprintf("%s/24", n.NodeIP), ""),
+				util.OvnNodeIfAddr:    fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", fmt.Sprintf("%s/24", n.NodeIP), ""),
 			},
 		},
 		Status: corev1.NodeStatus{
@@ -1602,22 +1596,22 @@ var _ = ginkgo.Describe("Default network controller operations", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		},
-		ginkgo.Entry("k8s.ovn.org/node-subnets",
+		ginkgo.Entry(util.OvnNodeSubnets,
 			&corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "newNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-id": "2",
+						util.OvnNodeID: "2",
 					},
 				},
 			},
 		),
-		ginkgo.Entry("k8s.ovn.org/node-id",
+		ginkgo.Entry(util.OvnNodeID,
 			&corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "newNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\": [\"10.130.0.0/23\", \"fd01:0:0:2::/64\"]}",
+						util.OvnNodeSubnets: "{\"default\": [\"10.130.0.0/23\", \"fd01:0:0:2::/64\"]}",
 					},
 				},
 			},
@@ -1700,7 +1694,7 @@ var _ = ginkgo.Describe("Default network controller operations", func() {
 				oc.retryNodes.ResourceHandler.AddResource(
 					&testNode, false)).To(
 				gomega.MatchError(
-					"[nodeAdd: error adding node \"node1\": could not find \"k8s.ovn.org/node-subnets\" annotation, error parsing annotation for node node1: could not find \"k8s.ovn.org/node-subnets\" annotation]"))
+					"[nodeAdd: error adding node \"node1\": could not find \"" + util.OvnNodeSubnets + "\" annotation, error parsing annotation for node node1: could not find \"" + util.OvnNodeSubnets + "\" annotation]"))
 			ginkgo.By("labeling the node to a hybrid overlay node")
 			testNode.Labels = nodeNoHostSubnetAnnotation()
 			_, err = fakeClient.KubeClient.CoreV1().Nodes().Update(context.TODO(), &testNode, metav1.UpdateOptions{})
@@ -1731,9 +1725,9 @@ var _ = ginkgo.Describe("Default network controller operations", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "newNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets":    fmt.Sprintf("{\"default\":[\"%s\", \"fd02:0:0:2::2895/64\"]}", newNodeSubnet),
-						"k8s.ovn.org/node-chassis-id": chassisIDForNode("newNode"),
-						util.OvnNodeID:                "2",
+						util.OvnNodeSubnets:    fmt.Sprintf("{\"default\":[\"%s\", \"fd02:0:0:2::2895/64\"]}", newNodeSubnet),
+						util.OvnNodeChassisID: chassisIDForNode("newNode"),
+						util.OvnNodeID:        "2",
 					},
 				},
 			}
@@ -1756,7 +1750,7 @@ var _ = ginkgo.Describe("Default network controller operations", func() {
 			// Simulate the ClusterManager reconciling the node annotations to single-stack
 			newNode, err = kubeFakeClient.CoreV1().Nodes().Get(context.TODO(), newNode.Name, metav1.GetOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			newNode.Annotations["k8s.ovn.org/node-subnets"] = fmt.Sprintf("{\"default\":[\"%s\"]}", newNodeSubnet)
+			newNode.Annotations[util.OvnNodeSubnets] = fmt.Sprintf("{\"default\":[\"%s\"]}", newNodeSubnet)
 			_, err = kubeFakeClient.CoreV1().Nodes().Update(context.TODO(), newNode, metav1.UpdateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -1793,8 +1787,8 @@ var _ = ginkgo.Describe("Default network controller operations", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "newNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets":                   fmt.Sprintf("{\"default\":[\"%s\"]}", newNodeIpv4Subnet),
-						"k8s.ovn.org/node-chassis-id":                chassisIDForNode("newNode"),
+						util.OvnNodeSubnets:   fmt.Sprintf("{\"default\":[\"%s\"]}", newNodeIpv4Subnet),
+						util.OvnNodeChassisID: chassisIDForNode("newNode"),
 						"k8s.ovn.org/node-gateway-router-lrp-ifaddr": "{\"ipv4\":\"100.64.0.2/16\"}",
 					},
 				},
@@ -1810,7 +1804,7 @@ var _ = ginkgo.Describe("Default network controller operations", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			newNodeIpv6SubnetPrefix := "aef0:0:0:2::"
 			newNodeIpv6Subnet := newNodeIpv6SubnetPrefix + "2895/64"
-			newNode.Annotations["k8s.ovn.org/node-subnets"] = fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", newNodeIpv4Subnet, newNodeIpv6Subnet)
+			newNode.Annotations[util.OvnNodeSubnets] = fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", newNodeIpv4Subnet, newNodeIpv6Subnet)
 			_, err = kubeFakeClient.CoreV1().Nodes().Update(context.TODO(), newNode, metav1.UpdateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -1906,10 +1900,10 @@ var _ = ginkgo.Describe("Default network controller operations", func() {
 			// Set annotations required to create remote zone node
 			newNodeSubnet := "10.1.2.0/24"
 			transitSwitchSubnet := "100.88.0.3/16"
-			testNode.Annotations["k8s.ovn.org/node-subnets"] = fmt.Sprintf("{\"default\":[\"%s\"]}", newNodeSubnet)
-			testNode.Annotations["k8s.ovn.org/node-chassis-id"] = chassisIDForNode(testNode.Name)
-			testNode.Annotations["k8s.ovn.org/node-transit-switch-port-ifaddr"] = fmt.Sprintf("{\"ipv4\":\"%s\"}", transitSwitchSubnet)
-			testNode.Annotations["k8s.ovn.org/zone-name"] = "foo"
+			testNode.Annotations[util.OvnNodeSubnets] = fmt.Sprintf("{\"default\":[\"%s\"]}", newNodeSubnet)
+			testNode.Annotations[util.OvnNodeChassisID] = chassisIDForNode(testNode.Name)
+			testNode.Annotations[util.OvnTransitSwitchPortAddr] = fmt.Sprintf("{\"ipv4\":\"%s\"}", transitSwitchSubnet)
+			testNode.Annotations[util.OvnNodeZoneName] = "foo"
 			updatedNode, err := fakeOvn.fakeClient.KubeClient.CoreV1().Nodes().Create(context.TODO(), &testNode, metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -2161,7 +2155,7 @@ func TestController_syncNodes(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "node1",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-chassis-id": chassisIDForNode(node1Name),
+						util.OvnNodeChassisID: chassisIDForNode(node1Name),
 					},
 				},
 			}
@@ -2248,7 +2242,7 @@ func TestController_deleteStaleNodeChassis(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "node1",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-chassis-id": chassisIDForNode("node1-dpu"),
+						util.OvnNodeChassisID: chassisIDForNode("node1-dpu"),
 					},
 				},
 			},
@@ -2337,11 +2331,10 @@ func TestController_addNode_duplicateChassisIDEmitsWarning(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node1",
 			Annotations: map[string]string{
-				util.OvnNodeChassisID:      sharedChassisID,
-				"k8s.ovn.org/node-subnets": "{\"default\":[\"10.1.1.0/24\"]}",
-				util.OvnNodeID:             "1",
-				util.OVNNodeHostCIDRs:      "[\"10.1.1.1/24\"]",
-				util.OvnNodeIfAddr:         "{\"ipv4\": \"10.1.1.1/24\", \"ipv6\": \"\"}",
+				util.OvnNodeChassisID: sharedChassisID,
+				util.OvnNodeID:        "1",
+				util.OVNNodeHostCIDRs: "[\"10.1.1.1/24\"]",
+				util.OvnNodeIfAddr:    "{\"ipv4\": \"10.1.1.1/24\", \"ipv6\": \"\"}",
 			},
 		},
 		Status: corev1.NodeStatus{
@@ -2352,11 +2345,11 @@ func TestController_addNode_duplicateChassisIDEmitsWarning(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node2",
 			Annotations: map[string]string{
-				util.OvnNodeChassisID:      sharedChassisID, // same as node1
-				"k8s.ovn.org/node-subnets": "{\"default\":[\"10.1.2.0/24\"]}",
-				util.OvnNodeID:             "2",
-				util.OVNNodeHostCIDRs:      "[\"10.1.2.1/24\"]",
-				util.OvnNodeIfAddr:         "{\"ipv4\": \"10.1.2.1/24\", \"ipv6\": \"\"}",
+				util.OvnNodeChassisID: sharedChassisID, // same as node1
+				util.OvnNodeSubnets:   "{\"default\":[\"10.1.2.0/24\"]}",
+				util.OvnNodeID:        "2",
+				util.OVNNodeHostCIDRs: "[\"10.1.2.1/24\"]",
+				util.OvnNodeIfAddr:    "{\"ipv4\": \"10.1.2.1/24\", \"ipv6\": \"\"}",
 			},
 		},
 		Status: corev1.NodeStatus{

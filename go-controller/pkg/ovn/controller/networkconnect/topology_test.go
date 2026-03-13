@@ -924,10 +924,10 @@ func TestSyncNetworkConnectionsInactiveNetwork(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node1",
 			Annotations: map[string]string{
-				util.OvnNodeZoneName:       "zone1",
-				util.OvnNodeID:             "1",
-				util.OvnNodeChassisID:      chassisIDForNode("node1"),
-				"k8s.ovn.org/node-subnets": string(subnetsBytes),
+				util.OvnNodeZoneName:  "zone1",
+				util.OvnNodeID:        "1",
+				util.OvnNodeChassisID: chassisIDForNode("node1"),
+				util.OvnNodeSubnets:   string(subnetsBytes),
 			},
 		},
 	}
@@ -2040,9 +2040,9 @@ func TestEnsureStaticRoutesOps(t *testing.T) {
 					// If subnet is already a JSON array (starts with [), use it directly
 					// Otherwise, wrap it as a single subnet string
 					if len(subnet) > 0 && subnet[0] == '[' {
-						annotations["k8s.ovn.org/node-subnets"] = fmt.Sprintf(`{"%s":%s}`, netName, subnet)
+						annotations[util.OvnNodeSubnets] = fmt.Sprintf(`{"%s":%s}`, netName, subnet)
 					} else {
-						annotations["k8s.ovn.org/node-subnets"] = fmt.Sprintf(`{"%s":"%s"}`, netName, subnet)
+						annotations[util.OvnNodeSubnets] = fmt.Sprintf(`{"%s":"%s"}`, netName, subnet)
 					}
 				}
 				node := &corev1.Node{

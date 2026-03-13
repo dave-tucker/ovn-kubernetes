@@ -250,7 +250,7 @@ var _ = ginkgo.Describe("Hybrid SDN Master Operations", func() {
 				}
 				_, err = util.ParseNodeHostSubnetAnnotation(updatedNode, types.DefaultNetworkName)
 				return err
-			}, 2).Should(gomega.MatchError("could not find \"k8s.ovn.org/node-subnets\" annotation"))
+			}, 2).Should(gomega.MatchError("could not find \"" + util.OvnNodeSubnets + "\" annotation"))
 
 			gomega.Eventually(fexec.CalledMatchesExpected, 2).Should(gomega.BeTrue(), fexec.ErrorDesc)
 
@@ -1076,7 +1076,7 @@ var _ = ginkgo.Describe("Hybrid SDN Master Operations", func() {
 			}
 			testNode1 := node1.k8sNode("2")
 			testNode2 := node2.k8sNode("3")
-			testNode2.Annotations["k8s.ovn.org/node-subnets"] = "{\"default\":[\"10.1.3.0/24\"]}"
+			testNode2.Annotations[util.OvnNodeSubnets] = "{\"default\":[\"10.1.3.0/24\"]}"
 
 			kubeFakeClient := fake.NewSimpleClientset(&corev1.NodeList{
 				Items: []corev1.Node{

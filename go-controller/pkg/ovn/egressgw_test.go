@@ -3705,7 +3705,7 @@ func injectNode(fakeOvn *FakeOVN) {
 			Name: "node1",
 			Annotations: map[string]string{"k8s.ovn.org/l3-gateway-config": `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"169.254.33.2/24", "next-hop":"169.254.33.1"}}`,
 				"k8s.ovn.org/node-chassis-id": chassisIDForNode("node1"),
-				"k8s.ovn.org/node-subnets":    `{"default":"10.128.1.0/24"}`,
+				util.OvnNodeSubnets:           `{"default":"10.128.1.0/24"}`,
 			},
 		},
 	}

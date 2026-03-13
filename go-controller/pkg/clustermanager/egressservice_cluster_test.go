@@ -19,6 +19,7 @@ import (
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/config"
 	egressserviceapi "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/crd/egressservice/v1"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/ovn/healthcheck"
+	util "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/util"
 )
 
 var _ = ginkgo.Describe("Cluster manager Egress Service operations", func() {
@@ -1583,7 +1584,7 @@ func nodeFor(name, ipv4, ipv6, v4subnet, v6subnet string) *corev1.Node {
 			Name: name,
 			Annotations: map[string]string{
 				"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", ipv4, ipv6),
-				"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\",\"%s\"]}", v4subnet, v6subnet),
+				util.OvnNodeSubnets:        fmt.Sprintf("{\"default\":[\"%s\",\"%s\"]}", v4subnet, v6subnet),
 			},
 			Labels: map[string]string{
 				"kubernetes.io/hostname": name,

@@ -284,7 +284,7 @@ var _ = Describe("UserDefinedNodeNetworkController: UserDefinedPrimaryNetwork Ga
 				Name: nodeName,
 				Annotations: map[string]string{
 					"k8s.ovn.org/network-ids":       fmt.Sprintf("{\"%s\": \"%d\"}", netName, netID),
-					"k8s.ovn.org/node-subnets":      fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets:             fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 					"k8s.ovn.org/host-cidrs":        fmt.Sprintf("[\"%s\", \"%s\"]", v4NodeIP, v6NodeIP),
 					"k8s.ovn.org/l3-gateway-config": "{\"default\": {}}",
 				},

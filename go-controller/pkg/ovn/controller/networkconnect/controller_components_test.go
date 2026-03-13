@@ -291,13 +291,13 @@ func TestNodeNeedsUpdate(t *testing.T) {
 			oldObj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "node1",
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"10.244.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"10.244.0.0/24"}`},
 				},
 			},
 			newObj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "node1",
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"10.244.1.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"10.244.1.0/24"}`},
 				},
 			},
 			expected: true,
@@ -355,9 +355,9 @@ func TestNodeNeedsUpdate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "node1",
 					Annotations: map[string]string{
-						"k8s.ovn.org/zone-name":    "zone1",
-						"k8s.ovn.org/node-subnets": `{"default":"10.244.0.0/24"}`,
-						"k8s.ovn.org/node-id":      "1",
+						"k8s.ovn.org/zone-name": "zone1",
+						util.OvnNodeSubnets:     `{"default":"10.244.0.0/24"}`,
+						"k8s.ovn.org/node-id":   "1",
 					},
 				},
 			},
@@ -365,9 +365,9 @@ func TestNodeNeedsUpdate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "node1",
 					Annotations: map[string]string{
-						"k8s.ovn.org/zone-name":    "zone1",
-						"k8s.ovn.org/node-subnets": `{"default":"10.244.0.0/24"}`,
-						"k8s.ovn.org/node-id":      "1",
+						"k8s.ovn.org/zone-name": "zone1",
+						util.OvnNodeSubnets:     `{"default":"10.244.0.0/24"}`,
+						"k8s.ovn.org/node-id":   "1",
 					},
 				},
 			},
@@ -409,8 +409,8 @@ func TestController_reconcileNode(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node1",
 			Annotations: map[string]string{
-				"k8s.ovn.org/zone-name":    "zone1",
-				"k8s.ovn.org/node-subnets": `{"default":"10.244.0.0/24"}`,
+				"k8s.ovn.org/zone-name": "zone1",
+				util.OvnNodeSubnets:     `{"default":"10.244.0.0/24"}`,
 			},
 		},
 	}

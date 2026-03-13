@@ -261,7 +261,7 @@ func getNodeData(netInfo util.NetInfo, nodeName string) []libovsdb.TestData {
 func newNodeWithNad(nad *nadapi.NetworkAttachmentDefinition, networkName, networkID string) *corev1.Node {
 	n := newNode(nodeName, "192.168.126.202/24")
 	if nad != nil {
-		n.Annotations["k8s.ovn.org/node-subnets"] = fmt.Sprintf("{\"default\":\"192.168.126.202/24\", \"%s\":\"192.168.127.202/24\"}", networkName)
+		n.Annotations[util.OvnNodeSubnets] = fmt.Sprintf("{\"default\":\"192.168.126.202/24\", \"%s\":\"192.168.127.202/24\"}", networkName)
 		n.Annotations["k8s.ovn.org/network-ids"] = fmt.Sprintf("{\"default\":\"0\",\"%s\":\"%s\"}", networkName, networkID)
 		n.Annotations["k8s.ovn.org/node-mgmt-port-mac-addresses"] = fmt.Sprintf("{\"default\":\"96:8f:e8:25:a2:e5\",\"%s\":\"d6:bc:85:32:30:fb\"}", networkName)
 		n.Annotations["k8s.ovn.org/node-chassis-id"] = chassisIDForNode(n.Name)

@@ -28,7 +28,7 @@ func TestCreateSubnetAnnotation(t *testing.T) {
 	}{
 		{
 			desc:              "non-zero length annotation name and subnet list size of ONE provided as input",
-			inpAnnotName:      ovnNodeSubnets,
+			inpAnnotName:      OvnNodeSubnets,
 			inpDefaultSubnets: []string{"192.168.1.12/24"},
 		},
 		{
@@ -38,12 +38,12 @@ func TestCreateSubnetAnnotation(t *testing.T) {
 		},
 		{
 			desc:              "non-zero length annotation name and subnet list size greater than ONE provided as input",
-			inpAnnotName:      ovnNodeSubnets,
+			inpAnnotName:      OvnNodeSubnets,
 			inpDefaultSubnets: []string{"192.168.1.12/24", "fd02:0:0:2::2895/64"},
 		},
 		{
 			desc:              "subnet list of size 0 provided as input",
-			inpAnnotName:      ovnNodeSubnets,
+			inpAnnotName:      OvnNodeSubnets,
 			inpDefaultSubnets: []string{},
 		},
 	}
@@ -82,7 +82,7 @@ func TestSetSubnetAnnotation(t *testing.T) {
 		{
 			desc:             "tests function coverage, success path",
 			inpNodeAnnotator: testAnnotator,
-			inpAnnotName:     ovnNodeSubnets,
+			inpAnnotName:     OvnNodeSubnets,
 			inpDefSubnetIps:  ovntest.MustParseIPNets("192.168.1.12/24"),
 		},
 	}
@@ -112,57 +112,57 @@ func TestParseSubnetAnnotation(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "testNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.0.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.0.0/24\"}",
 					},
 				},
 			},
 		},
 		{
 			desc:    "correct annotation with one subnet",
-			annName: ovnNodeSubnets,
+			annName: OvnNodeSubnets,
 			inpNode: corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "testNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.0.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.0.0/24\"}",
 					},
 				},
 			},
 		},
 		{
 			desc:    "parse as dual-stack",
-			annName: ovnNodeSubnets,
+			annName: OvnNodeSubnets,
 			inpNode: corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "testNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\": [\"10.244.0.0/24\", \"fd02:0:0:2::2895/64\"]}",
+						OvnNodeSubnets: "{\"default\": [\"10.244.0.0/24\", \"fd02:0:0:2::2895/64\"]}",
 					},
 				},
 			},
 		},
 		{
 			desc:        "error:cannot parse as single or dual stack",
-			annName:     ovnNodeSubnets,
+			annName:     OvnNodeSubnets,
 			errExpected: true,
 			inpNode: corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "testNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\": [\"10.244.0.0/24\", \"\"fd02:0:0:2::2895/64\"]}", //added the extra \" in front of fd02: to cause json.Unmarshal error
+						OvnNodeSubnets: "{\"default\": [\"10.244.0.0/24\", \"\"fd02:0:0:2::2895/64\"]}", //added the extra \" in front of fd02: to cause json.Unmarshal error
 					},
 				},
 			},
 		},
 		{
 			desc:        "error: annotation has no default network",
-			annName:     ovnNodeSubnets,
+			annName:     OvnNodeSubnets,
 			errExpected: true,
 			inpNode: corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "testNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{}",
+						OvnNodeSubnets: "{}",
 					},
 				},
 			},
@@ -200,7 +200,7 @@ func TestNodeSubnetAnnotationChanged(t *testing.T) {
 			newNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.0.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.0.0/24\"}",
 					},
 				},
 			},
@@ -211,14 +211,14 @@ func TestNodeSubnetAnnotationChanged(t *testing.T) {
 			newNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.0.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.0.0/24\"}",
 					},
 				},
 			},
 			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.2.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.2.0/24\"}",
 					},
 				},
 			},
@@ -229,14 +229,14 @@ func TestNodeSubnetAnnotationChanged(t *testing.T) {
 			newNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.0.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.0.0/24\"}",
 					},
 				},
 			},
 			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.0.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.0.0/24\"}",
 					},
 				},
 			},
@@ -262,7 +262,7 @@ func TestCreateNodeHostSubnetAnnotation(t *testing.T) {
 			desc:            "success path, valid default subnets",
 			inpDefSubnetIps: ovntest.MustParseIPNets("192.168.1.12/24"),
 			outExp: map[string]string{
-				"k8s.ovn.org/node-subnets": "{\"default\":[\"192.168.1.12/24\"]}",
+				OvnNodeSubnets: "{\"default\":[\"192.168.1.12/24\"]}",
 			},
 		},
 		{
@@ -344,7 +344,7 @@ func TestParseNodeHostSubnetAnnotation(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "testNode",
 					Annotations: map[string]string{
-						"k8s.ovn.org/node-subnets": "{\"default\":\"10.244.0.0/24\"}",
+						OvnNodeSubnets: "{\"default\":\"10.244.0.0/24\"}",
 					},
 				},
 			},

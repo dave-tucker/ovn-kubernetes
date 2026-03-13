@@ -361,7 +361,7 @@ var _ = ginkgo.Describe("Cluster Manager", func() {
 						}
 						_, err = util.ParseNodeHostSubnetAnnotation(updatedNode, ovntypes.DefaultNetworkName)
 						return err
-					}, 2).Should(gomega.MatchError("could not find \"k8s.ovn.org/node-subnets\" annotation"))
+					}, 2).Should(gomega.MatchError("could not find \"" + util.OvnNodeSubnets + "\" annotation"))
 				}
 
 				// Clear the subnet annotation of nodes and make sure it is re-allocated by cluster manager.
@@ -393,7 +393,7 @@ var _ = ginkgo.Describe("Cluster Manager", func() {
 						}
 						_, err = util.ParseNodeHostSubnetAnnotation(updatedNode, ovntypes.DefaultNetworkName)
 						return err
-					}, 2).Should(gomega.MatchError("could not find \"k8s.ovn.org/node-subnets\" annotation"))
+					}, 2).Should(gomega.MatchError("could not find \"" + util.OvnNodeSubnets + "\" annotation"))
 				}
 				return nil
 			}

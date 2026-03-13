@@ -159,7 +159,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 			hostCIDRs = hostCIDRs + "]"
 			annotations := map[string]string{
 				"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", ni.addresses[0], ""),
-				"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", nodeSubnets[i]),
+				util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", nodeSubnets[i]),
 				util.OVNNodeHostCIDRs:                         hostCIDRs,
 				"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf("{\"ipv4\":\"%s\"}", ni.transitPortIP), // used only for ic=true test
 				"k8s.ovn.org/zone-name":                       ni.zone,
@@ -188,7 +188,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 			hostCIDRs = hostCIDRs + "]"
 			annotations := map[string]string{
 				"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", "", ni.addresses[0]),
-				"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", nodeSubnets[i]),
+				util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", nodeSubnets[i]),
 				util.OVNNodeHostCIDRs:                         hostCIDRs,
 				"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf("{\"ipv6\":\"%s\"}", ni.transitPortIP), // used only for ic=true test
 				"k8s.ovn.org/zone-name":                       ni.zone,
@@ -2608,7 +2608,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					egressNamespace := ovntest.NewNamespace(eipNamespace)
 					annotations := map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4, ""),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.2/16\"}", // used only for ic=true test
 						"k8s.ovn.org/zone-name":                       node1Zone,
 						util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\"]", node1IPv4),
@@ -2619,7 +2619,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					node1 := getNodeObj(node1Name, annotations, labels)
 					annotations = map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4, ""),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.3/16\"}", // used only for ic=true test
 						"k8s.ovn.org/zone-name":                       node2Zone,                      // used only for ic=true test
 						util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\"]", node2IPv4),
@@ -3411,7 +3411,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", nodeIPv4, ""),
-					"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\",\"%s\"}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\",\"%s\"}", v4Node1Subnet, v6Node1Subnet),
 					"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.2/16\", \"ipv6\": \"fd97::2/64\"}",
 					util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\"]", nodeIPv4),
 					"k8s.ovn.org/zone-name":                       "global",
@@ -3594,7 +3594,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 					annotations := map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4, ""),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\",\"%s\"}", v4Node1Subnet, v6Node1Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\",\"%s\"}", v4Node1Subnet, v6Node1Subnet),
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.2/16\", \"ipv6\": \"fd97::2/64\"}", // used only for ic=true test
 						util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\"]", node1IPv4),
 					}
@@ -3612,7 +3612,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					_, node2SubnetV6, _ := net.ParseCIDR(v6Node2Subnet)
 					annotations = map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4, node2IPv6),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\",\"%s\"}", v4Node2Subnet, v6Node2Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\",\"%s\"}", v4Node2Subnet, v6Node2Subnet),
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.3/16\", \"ipv6\": \"fd97::3/64\"}", // used only for ic=true test
 						util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\",\"%s\"]", node2IPv4, node2IPv6),
 					}
@@ -5569,7 +5569,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					egressNamespace := ovntest.NewNamespace(eipNamespace)
 					annotations := map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, ""),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.2/16\"}", // used only for ic=true test
 						"k8s.ovn.org/zone-name":                       node1Zone,                      // used only for ic=true test
 						util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -5581,7 +5581,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					node1 := getNodeObj(node1Name, annotations, labels)
 					annotations = map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.3/16\"}", // used only for ic=true test
 						"k8s.ovn.org/zone-name":                       node2Zone,                      // used only for ic=true test
 						util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
@@ -6421,14 +6421,14 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				_, node1Subnet, _ := net.ParseCIDR(v4Node1Subnet)
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, node1IPv6CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\",\"%s\"]", node1IPv4CIDR, node1IPv6CIDR),
 				}
 				node1 := getNodeObj(node1Name, annotations, map[string]string{})
 				_, node2Subnet, _ := net.ParseCIDR(v4Node2Subnet)
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
 				}
 				node2 := getNodeObj(node2Name, annotations, map[string]string{})
@@ -6651,7 +6651,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				_, node1SubnetV6, _ := net.ParseCIDR(v6Node1Subnet)
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", nodeIPv4, nodeIPv6),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", nodeIPv4),
 				}
 				node := getNodeObj("node", annotations, map[string]string{})
@@ -6816,7 +6816,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				egressNamespace := ovntest.NewNamespace(eipNamespace)
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 					"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -7172,7 +7172,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 					"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -7494,7 +7494,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					egressNamespace := ovntest.NewNamespace(eipNamespace)
 					annotations := map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 						"k8s.ovn.org/l3-gateway-config":               `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 						"k8s.ovn.org/node-chassis-id":                 "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.2/16\"}", // used only for ic=true test
@@ -7507,7 +7507,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					node1 := getNodeObj(node1Name, annotations, labels)
 					annotations = map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\"}", node2IPv4CIDR),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 						"k8s.ovn.org/l3-gateway-config":               `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:50", "ip-address":"192.168.126.13/24", "next-hop":"192.168.126.1"}}`,
 						"k8s.ovn.org/node-chassis-id":                 "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": "{\"ipv4\":\"100.88.0.3/16\"}", // used only for ic=true test
@@ -8144,7 +8144,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 						Name: node1Name,
 						Annotations: map[string]string{
 							"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", nodeIPv4CIDR, nodeIPv6CIDR),
-							"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+							util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 							util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\",\"%s\"]", nodeIPv4CIDR, nodeIPv6CIDR),
 						},
 					},
@@ -8392,7 +8392,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				node2IPv4CIDR := node2IPv4 + "/24"
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, node1IPv6CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
 				}
 				labels := map[string]string{
@@ -8401,7 +8401,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				node1 := getNodeObj(node1Name, annotations, labels)
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
 				}
 				node2 := getNodeObj(node2Name, annotations, labels)
@@ -8590,7 +8590,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
 				}
 				labels := map[string]string{
@@ -8599,7 +8599,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				node1 := getNodeObj(node1Name, annotations, labels)
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
 				}
 				labels = map[string]string{}
@@ -8875,14 +8875,14 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				egressNamespace := ovntest.NewNamespace(eipNamespace)
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
 				}
 				labels := map[string]string{}
 				node1 := getNodeObj(node1Name, annotations, labels)
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
 				}
 
@@ -9149,7 +9149,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
 					util.OvnNodeZoneName:              "global",
 				}
@@ -9349,7 +9349,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 					"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -9554,13 +9554,13 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, node1IPv6CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\",\"%s\"]", node1IPv4CIDR, node1IPv6CIDR),
 				}
 				node1 := getNodeObj(node1Name, annotations, map[string]string{})
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
 				}
 				node2 := getNodeObj(node2Name, annotations, map[string]string{})
@@ -9928,13 +9928,13 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
 				}
 				node1 := getNodeObj(node1Name, annotations, map[string]string{})
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
 				}
 				node2 := getNodeObj(node2Name, annotations, map[string]string{})
@@ -10324,7 +10324,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 						Name: node1Name,
 						Annotations: map[string]string{
 							"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-							"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+							util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 							"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 							"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 							util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -10520,7 +10520,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 						Name: node1Name,
 						Annotations: map[string]string{
 							"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-							"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+							util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 							"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 							"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 							util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -10812,7 +10812,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 							Name: node1Name,
 							Annotations: map[string]string{
 								"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"fc00:f853:ccd:e793::13/64\"}", node1IPv4CIDR),
-								"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+								util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 								"k8s.ovn.org/l3-gateway-config":   "{\"default\":{\"mode\":\"shared\",\"bridge-id\":\"breth0\",\"interface-id\":\"breth0_ovn-worker\",\"mac-address\":\"3a:24:24:5d:85:aa\",\"ip-addresses\":[\"10.89.0.19/24\",\"fc00:f853:ccd:e793::13/64\"],\"next-hops\":[\"10.89.0.1\",\"fc00:f853:ccd:e793::1\"],\"node-port-enable\":\"true\",\"vlan-id\":\"0\"}}",
 								"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 								util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\",\"%s\"]", node1IPv4CIDR, "fc00:f853:ccd:e793::13/64"),
@@ -11620,7 +11620,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					egressNamespace := ovntest.NewNamespace(eipNamespace)
 					annotations := map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-						"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+						util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 						"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 						"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 						util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -11629,7 +11629,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					node1 := getNodeObj(node1Name, annotations, map[string]string{})
 					annotations = map[string]string{
 						"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node2IPv4CIDR),
-						"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
+						util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
 						"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.51/24", "next-hop":"192.168.126.1"}}`,
 						"k8s.ovn.org/node-chassis-id":     "89fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 						util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
@@ -12591,7 +12591,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				egressNamespace := ovntest.NewNamespace(eipNamespace)
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node1IPv4CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 					"k8s.ovn.org/node-chassis-id":     "79fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node1IPv4CIDR),
@@ -12599,7 +12599,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				node1 := getNodeObj(node1Name, annotations, map[string]string{})
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\"}", node2IPv4CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node2Subnet),
 					"k8s.ovn.org/l3-gateway-config":   `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.51/24", "next-hop":"192.168.126.1"}}`,
 					"k8s.ovn.org/node-chassis-id":     "89fdcfc4-6fe6-4cd3-8242-c0f85a4668ec",
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
@@ -13452,7 +13452,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				egressNamespace := ovntest.NewNamespace(eipNamespace)
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, node1IPv6CIDR),
-					"k8s.ovn.org/node-subnets":        "{\"default\":[\"10.128.0.0/23\", \"10.132.0.0/23\", \"fd69::1/120\"]}",
+					util.OvnNodeSubnets:               "{\"default\":[\"10.128.0.0/23\", \"10.132.0.0/23\", \"fd69::1/120\"]}",
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\",\"%s\"]", node1IPv4CIDR, node1IPv6CIDR),
 				}
 				node1 := getNodeObj(node1Name, annotations, nil)
@@ -13688,7 +13688,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				egressNamespace := ovntest.NewNamespace(eipNamespace)
 				annotations := map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node1IPv4CIDR, node1IPv6CIDR),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\",\"%s\"]", node1IPv4CIDR, node1IPv6CIDR),
 				}
 				labels := map[string]string{
@@ -13697,13 +13697,13 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				node1 := getNodeObj(node1Name, annotations, labels)
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node2IPv4CIDR),
 				}
 				node2 := getNodeObj(node2Name, annotations, labels)
 				annotations = map[string]string{
 					"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node3IPv4CIDR, ""),
-					"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+					util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 					util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", node3IPv4CIDR),
 				}
 				node3 := getNodeObj(node3Name, annotations, labels)
@@ -14414,7 +14414,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					nodeAnnotations := map[string]string{
 						"k8s.ovn.org/l3-gateway-config":               fmt.Sprintf(`{"default":{"mode":"shared","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"%s", "next-hop":"192.168.126.1"}}`, n.primaryINFIP+mask),
 						"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{%s}", addValueToIPFamilyKey(n.primaryINFIP+mask)),
-						"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":[\"%s\"]}", n.podSubnet),
+						util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":[\"%s\"]}", n.podSubnet),
 						"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf("{%s}", addValueToIPFamilyKey(n.transitSWIP+mask)),
 						"k8s.ovn.org/zone-name":                       n.nodeName,
 						util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\"]", n.primaryINFIP+mask),
@@ -14637,7 +14637,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					"k8s.ovn.org/l3-gateway-config":               `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 					util.OvnNodeID:                                "2",
 					"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", Node1IPv4CIDR, node1IPv6CIDR),
-					"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 					"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf("{\"ipv4\":\"%s\", \"ipv6\": \"%s\"}", node1TranSwitchIPv4CIDR, node1TranSwitchIPv6CIDR),
 					"k8s.ovn.org/zone-name":                       node1Name,
 					util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\",\"%s\"]", Node1IPv4CIDR, node1IPv6CIDR),
@@ -14880,7 +14880,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 					"k8s.ovn.org/l3-gateway-config":               `{"default":{"mode":"local","mac-address":"7e:57:f8:f0:3c:49", "ip-address":"192.168.126.12/24", "next-hop":"192.168.126.1"}}`,
 					util.OvnNodeID:                                "2",
 					"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", Node1IPv4CIDR, node1IPv6CIDR),
-					"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
+					util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node1Subnet, v6Node1Subnet),
 					"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf("{\"ipv4\":\"%s\", \"ipv6\": \"%s\"}", node1TranSwitchIPv4CIDR, node1TranSwitchIPv6CIDR),
 					"k8s.ovn.org/zone-name":                       node1Name,
 					util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\",\"%s\"]", Node1IPv4CIDR, node1IPv6CIDR),
@@ -14900,7 +14900,7 @@ var _ = ginkgo.Describe("OVN master EgressIP Operations cluster default network"
 				nodeAnnotations = map[string]string{
 					util.OvnNodeID:                                "3",
 					"k8s.ovn.org/node-primary-ifaddr":             fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", node2IPv4CIDR, node2IPv6CIDR),
-					"k8s.ovn.org/node-subnets":                    fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node2Subnet, v6Node2Subnet),
+					util.OvnNodeSubnets:                           fmt.Sprintf("{\"default\":[\"%s\", \"%s\"]}", v4Node2Subnet, v6Node2Subnet),
 					"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf("{\"ipv4\":\"%s\", \"ipv6\": \"%s\"}", node2TranSwitchIPv4CIDR, node2TranSwitchIPv6CIDR),
 					"k8s.ovn.org/zone-name":                       node2Name,
 					util.OVNNodeHostCIDRs:                         fmt.Sprintf("[\"%s\",\"%s\"]", node2IPv4CIDR, node2IPv6CIDR),

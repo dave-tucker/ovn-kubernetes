@@ -235,8 +235,8 @@ var _ = Describe("Healthcheck tests", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: nodeName,
 					Annotations: map[string]string{
-						"k8s.ovn.org/network-ids":  fmt.Sprintf("{\"%s\": \"%d\"}", netName, netID),
-						"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet)},
+						"k8s.ovn.org/network-ids": fmt.Sprintf("{\"%s\": \"%d\"}", netName, netID),
+						util.OvnNodeSubnets:       fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet)},
 				},
 			}
 			nodeList := []*corev1.Node{node}
@@ -311,8 +311,8 @@ var _ = Describe("Healthcheck tests", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: nodeName,
 					Annotations: map[string]string{
-						"k8s.ovn.org/network-ids":  fmt.Sprintf("{\"%s\": \"%d\"}", netName, netID),
-						"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet)},
+						"k8s.ovn.org/network-ids": fmt.Sprintf("{\"%s\": \"%d\"}", netName, netID),
+						util.OvnNodeSubnets:       fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet)},
 				},
 			}
 			nodeList := []*corev1.Node{node}

@@ -746,7 +746,7 @@ var _ = Describe("OVN Kubevirt Operations", func() {
 									Name: node1,
 									Annotations: map[string]string{
 										"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf(`{"ipv4": %q, "ipv6": %q}`, nodeByName[node1].transitSwitchPortIPv4, nodeByName[node1].transitSwitchPortIPv6),
-										"k8s.ovn.org/node-subnets":                    fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[node1].subnetIPv4, nodeByName[node1].subnetIPv6),
+										util.OvnNodeSubnets:                           fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[node1].subnetIPv4, nodeByName[node1].subnetIPv6),
 										"k8s.ovn.org/l3-gateway-config":               fmt.Sprintf(`{"default": {"mode": "local", "mac-address":"7e:57:f8:f0:3c:51", "ip-addresses":[%q, %q]}}`, nodeByName[node1].addressIPv4, nodeByName[node1].addressIPv6),
 										"k8s.ovn.org/node-chassis-id":                 chassisIDForNode(node1),
 										util.OvnNodeID:                                nodeByName[node1].nodeID,
@@ -758,7 +758,7 @@ var _ = Describe("OVN Kubevirt Operations", func() {
 									Name: node2,
 									Annotations: map[string]string{
 										"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf(`{"ipv4": %q, "ipv6": %q}`, nodeByName[node2].transitSwitchPortIPv4, nodeByName[node2].transitSwitchPortIPv6),
-										"k8s.ovn.org/node-subnets":                    fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[node2].subnetIPv4, nodeByName[node2].subnetIPv6),
+										util.OvnNodeSubnets:                           fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[node2].subnetIPv4, nodeByName[node2].subnetIPv6),
 										"k8s.ovn.org/l3-gateway-config":               fmt.Sprintf(`{"default": {"mode": "local", "mac-address":"7e:57:f8:f0:3c:52", "ip-addresses":[%q, %q]}}`, nodeByName[node2].addressIPv4, nodeByName[node2].addressIPv6),
 										"k8s.ovn.org/node-chassis-id":                 chassisIDForNode(node2),
 										util.OvnNodeID:                                nodeByName[node2].nodeID,
@@ -770,7 +770,7 @@ var _ = Describe("OVN Kubevirt Operations", func() {
 									Name: node3,
 									Annotations: map[string]string{
 										"k8s.ovn.org/node-transit-switch-port-ifaddr": fmt.Sprintf(`{"ipv4": %q, "ipv6": %q}`, nodeByName[node3].transitSwitchPortIPv4, nodeByName[node3].transitSwitchPortIPv6),
-										"k8s.ovn.org/node-subnets":                    fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[node3].subnetIPv4, nodeByName[node3].subnetIPv6),
+										util.OvnNodeSubnets:                           fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[node3].subnetIPv4, nodeByName[node3].subnetIPv6),
 										"k8s.ovn.org/l3-gateway-config":               fmt.Sprintf(`{"default": {"mode": "local", "mac-address":"7e:57:f8:f0:3c:53", "ip-addresses":[%q, %q]}}`, nodeByName[node3].addressIPv4, nodeByName[node3].addressIPv6),
 										"k8s.ovn.org/node-chassis-id":                 chassisIDForNode(node3),
 										util.OvnNodeID:                                nodeByName[node3].nodeID,
@@ -902,8 +902,8 @@ var _ = Describe("OVN Kubevirt Operations", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "newNode1",
 							Annotations: map[string]string{
-								"k8s.ovn.org/node-subnets": fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[t.replaceNode].subnetIPv4, nodeByName[t.replaceNode].subnetIPv6),
-								util.OvnNodeID:             nodeByName[t.replaceNode].nodeID,
+								util.OvnNodeSubnets: fmt.Sprintf(`{"default":[%q,%q]}`, nodeByName[t.replaceNode].subnetIPv4, nodeByName[t.replaceNode].subnetIPv6),
+								util.OvnNodeID:      nodeByName[t.replaceNode].nodeID,
 							},
 						},
 					}

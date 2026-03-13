@@ -115,7 +115,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			name: "ovnkube-node cannot modify annotations on pods running on different nodes",
 			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{
 				Name:        nodeName + "_rougeOne",
-				Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+				Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 			}},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
 				AdmissionRequest: admv1.AdmissionRequest{UserInfo: authenticationv1.UserInfo{
@@ -167,7 +167,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -195,7 +195,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -224,7 +224,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -252,7 +252,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -281,7 +281,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -309,7 +309,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -337,7 +337,7 @@ func TestPodAdmission_ValidateUpdate(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -458,7 +458,7 @@ func TestPodAdmission_ValidateUpdateExtraUsers(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{
@@ -486,7 +486,7 @@ func TestPodAdmission_ValidateUpdateExtraUsers(t *testing.T) {
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        nodeName,
-					Annotations: map[string]string{"k8s.ovn.org/node-subnets": `{"default":"192.168.0.0/24"}`},
+					Annotations: map[string]string{util.OvnNodeSubnets: `{"default":"192.168.0.0/24"}`},
 				},
 			},
 			ctx: admission.NewContextWithRequest(context.TODO(), admission.Request{

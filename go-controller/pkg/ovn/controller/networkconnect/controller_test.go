@@ -38,7 +38,6 @@ import (
 
 const (
 	// Annotation keys used in tests (matching unexported constants in util package)
-	ovnNodeSubnetsAnnotation          = "k8s.ovn.org/node-subnets"
 	ovnNetworkConnectSubnetAnnotation = "k8s.ovn.org/network-connect-subnet"
 )
 
@@ -154,7 +153,7 @@ func createTestNode(n testNode) *corev1.Node {
 	}
 	// Add node subnet annotations based on IP mode
 	if len(n.nodeSubnets) > 0 {
-		annotations[ovnNodeSubnetsAnnotation] = buildNodeSubnetAnnotation(n.nodeSubnets)
+		annotations[util.OvnNodeSubnets] = buildNodeSubnetAnnotation(n.nodeSubnets)
 	}
 	annotations[util.OvnNodeChassisID] = chassisIDForNode(n.name)
 
@@ -2726,7 +2725,7 @@ var _ = Describe("OVNKube Network Connect Controller Integration Tests", func() 
 						context.Background(), "node1", metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 
-					node.Annotations[ovnNodeSubnetsAnnotation] = buildNodeSubnetAnnotation(map[string]subnetPair{
+					node.Annotations[util.OvnNodeSubnets] = buildNodeSubnetAnnotation(map[string]subnetPair{
 						"subnet-update-net": {"10.128.10.0/24", "fd00:10:128:10::/64"},
 					})
 					_, err = fakeClientset.KubeClient.CoreV1().Nodes().Update(

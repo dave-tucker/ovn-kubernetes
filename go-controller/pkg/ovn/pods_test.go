@@ -45,7 +45,7 @@ func newNode(nodeName, nodeIPv4CIDR string) *corev1.Node {
 			Name: nodeName,
 			Annotations: map[string]string{
 				"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", nodeIPv4CIDR, ""),
-				"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+				util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 				util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", nodeIPv4CIDR),
 				util.OvnNodeChassisID:             chassisIDForNode(nodeName),
 				"k8s.ovn.org/zone-name":           "global",
@@ -71,7 +71,7 @@ func newNodeGlobalZoneNotEgressableV4Only(nodeName, nodeIPv4 string) *corev1.Nod
 			Name: nodeName,
 			Annotations: map[string]string{
 				"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", nodeIPv4, ""),
-				"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
+				util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v4Node1Subnet),
 				util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", nodeIPv4),
 				util.OvnNodeChassisID:             chassisIDForNode(nodeName),
 				"k8s.ovn.org/zone-name":           "global",
@@ -94,7 +94,7 @@ func newNodeGlobalZoneNotEgressableV6Only(nodeName, nodeIPv6 string) *corev1.Nod
 			Name: nodeName,
 			Annotations: map[string]string{
 				"k8s.ovn.org/node-primary-ifaddr": fmt.Sprintf("{\"ipv4\": \"%s\", \"ipv6\": \"%s\"}", "", nodeIPv6),
-				"k8s.ovn.org/node-subnets":        fmt.Sprintf("{\"default\":\"%s\"}", v6Node1Subnet),
+				util.OvnNodeSubnets:               fmt.Sprintf("{\"default\":\"%s\"}", v6Node1Subnet),
 				util.OVNNodeHostCIDRs:             fmt.Sprintf("[\"%s\"]", nodeIPv6),
 				util.OvnNodeChassisID:             chassisIDForNode(nodeName),
 				"k8s.ovn.org/zone-name":           "global",

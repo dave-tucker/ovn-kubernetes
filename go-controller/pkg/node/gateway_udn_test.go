@@ -367,8 +367,8 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/network-ids":  fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					"k8s.ovn.org/network-ids": fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
+					util.OvnNodeSubnets:       fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}
@@ -418,8 +418,8 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/network-ids":  fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					"k8s.ovn.org/network-ids": fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
+					util.OvnNodeSubnets:       fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}
@@ -459,8 +459,8 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/network-ids":  fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					"k8s.ovn.org/network-ids": fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
+					util.OvnNodeSubnets:       fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}
@@ -509,8 +509,8 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/network-ids":  fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					"k8s.ovn.org/network-ids": fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
+					util.OvnNodeSubnets:       fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}
@@ -556,7 +556,7 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 				Name: nodeName,
 				Annotations: map[string]string{
 					"k8s.ovn.org/network-ids":       fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets":      fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets:             fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
 					"k8s.ovn.org/host-cidrs":        fmt.Sprintf("[\"%s\", \"%s\"]", v4NodeIP, v6NodeIP),
 					"k8s.ovn.org/l3-gateway-config": "{\"default\": {}}",
 				},
@@ -792,7 +792,7 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 				Name: nodeName,
 				Annotations: map[string]string{
 					"k8s.ovn.org/network-ids":       fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets":      fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets:             fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
 					"k8s.ovn.org/host-cidrs":        fmt.Sprintf("[\"%s\", \"%s\"]", v4NodeIP, v6NodeIP),
 					"k8s.ovn.org/l3-gateway-config": "{\"default\": {}}",
 				},
@@ -989,9 +989,9 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/network-ids":  fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
-					"k8s.ovn.org/host-cidrs":   fmt.Sprintf("[\"%s\", \"%s\"]", v4NodeIP, v6NodeIP),
+					"k8s.ovn.org/network-ids": fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
+					util.OvnNodeSubnets:       fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
+					"k8s.ovn.org/host-cidrs":  fmt.Sprintf("[\"%s\", \"%s\"]", v4NodeIP, v6NodeIP),
 				},
 			},
 			Status: corev1.NodeStatus{Addresses: []corev1.NodeAddress{
@@ -1224,7 +1224,7 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 				Name: nodeName,
 				Annotations: map[string]string{
 					"k8s.ovn.org/network-ids":       fmt.Sprintf("{\"%s\": \"%s\"}", netName, netID),
-					"k8s.ovn.org/node-subnets":      fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets:             fmt.Sprintf("{\"default\":[\"%s\"],\"%s\":[\"%s\", \"%s\"]}", v4NodeSubnet, netName, v4NodeSubnet, v6NodeSubnet),
 					"k8s.ovn.org/host-cidrs":        fmt.Sprintf("[\"%s\", \"%s\"]", v4NodeIP, v6NodeIP),
 					"k8s.ovn.org/l3-gateway-config": "{\"default\": {}}",
 				},
@@ -1461,7 +1461,7 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets: fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}
@@ -1536,7 +1536,7 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets: fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}
@@ -1620,7 +1620,7 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets: fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}
@@ -1666,7 +1666,7 @@ var _ = Describe("UserDefinedNetworkGateway", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nodeName,
 				Annotations: map[string]string{
-					"k8s.ovn.org/node-subnets": fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
+					util.OvnNodeSubnets: fmt.Sprintf("{\"%s\":[\"%s\", \"%s\"]}", netName, v4NodeSubnet, v6NodeSubnet),
 				},
 			},
 		}

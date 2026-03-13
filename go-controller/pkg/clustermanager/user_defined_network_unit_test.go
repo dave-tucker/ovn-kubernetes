@@ -297,8 +297,8 @@ var _ = ginkgo.Describe("Cluster Controller Manager", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "node1",
 							Annotations: map[string]string{
-								"k8s.ovn.org/node-subnets": "{\"default\":[\"10.244.0.0/24\"],\"blue\":[\"192.168.0.0/24\"],\"red\":[\"192.169.0.0/24\"]}",
-								"k8s.ovn.org/network-ids":  "{\"default\":\"0\",\"blue\":\"1\",\"red\":\"2\"}",
+								util.OvnNodeSubnets:       "{\"default\":[\"10.244.0.0/24\"],\"blue\":[\"192.168.0.0/24\"],\"red\":[\"192.169.0.0/24\"]}",
+								"k8s.ovn.org/network-ids": "{\"default\":\"0\",\"blue\":\"1\",\"red\":\"2\"}",
 							},
 						},
 					},
@@ -306,8 +306,8 @@ var _ = ginkgo.Describe("Cluster Controller Manager", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "node2",
 							Annotations: map[string]string{
-								"k8s.ovn.org/node-subnets": "{\"default\":[\"10.244.1.0/24\"],\"blue\":[\"192.168.1.0/24\"],\"red\":[\"192.169.1.0/24\"]}",
-								"k8s.ovn.org/network-ids":  "{\"default\":\"0\",\"blue\":\"1\",\"red\":\"2\"}",
+								util.OvnNodeSubnets:       "{\"default\":[\"10.244.1.0/24\"],\"blue\":[\"192.168.1.0/24\"],\"red\":[\"192.169.1.0/24\"]}",
+								"k8s.ovn.org/network-ids": "{\"default\":\"0\",\"blue\":\"1\",\"red\":\"2\"}",
 							},
 						},
 					},
@@ -315,8 +315,8 @@ var _ = ginkgo.Describe("Cluster Controller Manager", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "node3",
 							Annotations: map[string]string{
-								"k8s.ovn.org/node-subnets": "{\"default\":[\"10.244.2.0/24\"],\"blue\":[\"192.168.2.0/24\"],\"red\":[\"192.169.2.0/24\"]}",
-								"k8s.ovn.org/network-ids":  "{\"default\":\"0\",\"blue\":\"1\",\"red\":\"2\"}",
+								util.OvnNodeSubnets:       "{\"default\":[\"10.244.2.0/24\"],\"blue\":[\"192.168.2.0/24\"],\"red\":[\"192.169.2.0/24\"]}",
+								"k8s.ovn.org/network-ids": "{\"default\":\"0\",\"blue\":\"1\",\"red\":\"2\"}",
 							},
 						},
 					},

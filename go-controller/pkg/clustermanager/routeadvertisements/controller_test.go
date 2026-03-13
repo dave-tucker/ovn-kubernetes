@@ -142,8 +142,8 @@ func (tn testNode) Node() *corev1.Node {
 			Labels:     tn.Labels,
 			Generation: int64(tn.Generation),
 			Annotations: map[string]string{
-				"k8s.ovn.org/node-subnets": tn.SubnetsAnnotation,
-				util.OvnNodeIfAddr:         primaryAddressAnnotation,
+				util.OvnNodeSubnets: tn.SubnetsAnnotation,
+				util.OvnNodeIfAddr:  primaryAddressAnnotation,
 			},
 		},
 	}
