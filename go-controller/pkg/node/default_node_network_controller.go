@@ -743,6 +743,22 @@ func (nc *DefaultNodeNetworkController) Init(ctx context.Context) error {
 		return fmt.Errorf("error retrieving node %s: %v", nc.name, err)
 	}
 
+	// Check that this node's OVS chassis-id is unique across the cluster before proceeding.
+	if config.OvnKubeNode.Mode != types.NodeModeDPUHost {
+		if chassisID, err := util.GetNodeChassisID(); err == nil {
+			nodes, err := nc.watchFactory.GetNodes()
+			if err != nil {
+				klog.V(5).Infof("Skipping chassis-id uniqueness check for node %s: failed to list nodes: %v", nc.name, err)
+			} else {
+				otherNodeNames := util.OtherNodesWithSameChassisID(chassisID, nc.name, nodes)
+				if len(otherNodeNames) > 0 {
+					return fmt.Errorf("OVS chassis-id %q is not unique: node %q shares it with node(s) %v - fix the duplicate before starting",
+						chassisID, nc.name, otherNodeNames)
+				}
+			}
+		}
+	}
+
 	nodeAddrStr, err := util.GetNodePrimaryIP(node)
 	if err != nil {
 		return err

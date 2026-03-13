@@ -2192,6 +2192,66 @@ add element inet ovn-kubernetes remote-node-ips-v6 { 2002:db8:1::4 }
 			}()),
 		)
 	})
+
+	Describe("Init", func() {
+		const (
+			testNodeName    = "test-node"
+			otherNodeName   = "other-node"
+			sharedChassisID = "cb9ec8fa-b409-4ef3-9f42-d9283c47aac6"
+		)
+
+		It("fails when OVS chassis-id is not unique across cluster", func() {
+			Expect(config.PrepareTestConfig()).To(Succeed())
+			config.OvnKubeNode.Mode = types.NodeModeFull
+
+			fexec := ovntest.NewFakeExec()
+			fexec.AddFakeCmd(&ovntest.ExpectedCmd{
+				Cmd:    "ovs-vsctl --timeout=15 --if-exists get Open_vSwitch . external_ids:system-id",
+				Output: sharedChassisID,
+			})
+			Expect(util.SetExec(fexec)).To(Succeed())
+
+			testNode := corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testNodeName,
+					Annotations: map[string]string{
+						util.OvnNodeChassisID: sharedChassisID,
+					},
+				},
+			}
+			otherNode := corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: otherNodeName,
+					Annotations: map[string]string{
+						util.OvnNodeChassisID: sharedChassisID,
+					},
+				},
+			}
+
+			fakeClient := fake.NewSimpleClientset(&testNode, &otherNode)
+			wf, err := factory.NewNodeWatchFactory(&util.OVNNodeClientset{
+				KubeClient: fakeClient,
+			}, testNodeName)
+			Expect(err).NotTo(HaveOccurred())
+			defer wf.Shutdown()
+			Expect(wf.Start()).To(Succeed())
+
+			nc := &DefaultNodeNetworkController{
+				BaseNodeNetworkController: BaseNodeNetworkController{
+					CommonNodeNetworkControllerInfo: CommonNodeNetworkControllerInfo{
+						name:          testNodeName,
+						watchFactory:  wf,
+					},
+				},
+			}
+
+			err = nc.Init(context.Background())
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("is not unique"))
+			Expect(err.Error()).To(ContainSubstring(otherNodeName))
+			Expect(err.Error()).To(ContainSubstring(sharedChassisID))
+		})
+	})
 })
 
 // Helper function to create string pointer

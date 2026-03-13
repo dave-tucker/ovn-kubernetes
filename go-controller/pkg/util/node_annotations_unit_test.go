@@ -347,6 +347,73 @@ func TestParseNodeL3GatewayAnnotation(t *testing.T) {
 	}
 }
 
+func TestOtherNodesWithSameChassisID(t *testing.T) {
+	chassisA := "chassis-a"
+	chassisB := "chassis-b"
+	node1 := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node1", Annotations: map[string]string{OvnNodeChassisID: chassisA}},
+	}
+	node2 := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node2", Annotations: map[string]string{OvnNodeChassisID: chassisA}},
+	}
+	node3 := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node3", Annotations: map[string]string{OvnNodeChassisID: chassisB}},
+	}
+	nodeNoChassis := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-no-chassis", Annotations: map[string]string{}},
+	}
+
+	tests := []struct {
+		name           string
+		chassisID      string
+		currentNode    string
+		nodes          []*corev1.Node
+		expectedOthers []string
+	}{
+		{
+			name:           "no duplicate: only current node has this chassis",
+			chassisID:      chassisA,
+			currentNode:    "node1",
+			nodes:          []*corev1.Node{node1},
+			expectedOthers: nil,
+		},
+		{
+			name:           "duplicate: one other node shares chassis",
+			chassisID:      chassisA,
+			currentNode:    "node1",
+			nodes:          []*corev1.Node{node1, node2},
+			expectedOthers: []string{"node2"},
+		},
+		{
+			name:           "duplicate: current is node2, other is node1",
+			chassisID:      chassisA,
+			currentNode:    "node2",
+			nodes:          []*corev1.Node{node1, node2},
+			expectedOthers: []string{"node1"},
+		},
+		{
+			name:           "no duplicate: other nodes have different chassis or no annotation",
+			chassisID:      chassisA,
+			currentNode:    "node1",
+			nodes:          []*corev1.Node{node1, node3, nodeNoChassis},
+			expectedOthers: nil,
+		},
+		{
+			name:           "empty node list",
+			chassisID:      chassisA,
+			currentNode:    "node1",
+			nodes:          nil,
+			expectedOthers: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := OtherNodesWithSameChassisID(tt.chassisID, tt.currentNode, tt.nodes)
+			assert.Equal(t, tt.expectedOthers, got)
+		})
+	}
+}
+
 func TestNodeL3GatewayAnnotationChanged(t *testing.T) {
 	tests := []struct {
 		desc    string

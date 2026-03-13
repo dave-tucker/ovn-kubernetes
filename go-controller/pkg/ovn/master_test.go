@@ -2328,3 +2328,100 @@ func TestController_deleteStaleNodeChassis(t *testing.T) {
 		})
 	}
 }
+
+func TestController_addNode_duplicateChassisIDEmitsWarning(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+
+	sharedChassisID := chassisIDForNode("node1")
+	node1 := corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node1",
+			Annotations: map[string]string{
+				util.OvnNodeChassisID:      sharedChassisID,
+				"k8s.ovn.org/node-subnets": "{\"default\":[\"10.1.1.0/24\"]}",
+				util.OvnNodeID:             "1",
+				util.OVNNodeHostCIDRs:      "[\"10.1.1.1/24\"]",
+				util.OvnNodeIfAddr:         "{\"ipv4\": \"10.1.1.1/24\", \"ipv6\": \"\"}",
+			},
+		},
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{{Type: corev1.NodeExternalIP, Address: "10.1.1.1"}},
+		},
+	}
+	node2 := corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node2",
+			Annotations: map[string]string{
+				util.OvnNodeChassisID:      sharedChassisID, // same as node1
+				"k8s.ovn.org/node-subnets": "{\"default\":[\"10.1.2.0/24\"]}",
+				util.OvnNodeID:             "2",
+				util.OVNNodeHostCIDRs:      "[\"10.1.2.1/24\"]",
+				util.OvnNodeIfAddr:         "{\"ipv4\": \"10.1.2.1/24\", \"ipv6\": \"\"}",
+			},
+		},
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{{Type: corev1.NodeExternalIP, Address: "10.1.2.1"}},
+		},
+	}
+
+	stopChan := make(chan struct{})
+	wg := &sync.WaitGroup{}
+	defer func() {
+		close(stopChan)
+		wg.Wait()
+	}()
+
+	kubeFakeClient := fake.NewSimpleClientset(&node1, &node2)
+	egressFirewallFakeClient := &egressfirewallfake.Clientset{}
+	egressIPFakeClient := &egressipfake.Clientset{}
+	fakeClient := &util.OVNMasterClientset{
+		KubeClient:           kubeFakeClient,
+		EgressIPClient:       egressIPFakeClient,
+		EgressFirewallClient: egressFirewallFakeClient,
+	}
+	f, err := factory.NewMasterWatchFactory(fakeClient)
+	if err != nil {
+		t.Fatalf("Error creating master watch factory: %v", err)
+	}
+	defer f.Shutdown()
+	if err := f.Start(); err != nil {
+		t.Fatalf("Error starting watch factory: %v", err)
+	}
+
+	fakeRecorder := record.NewFakeRecorder(10)
+	dbSetup := libovsdbtest.TestSetup{NBData: []libovsdbtest.TestData{}, SBData: []libovsdbtest.TestData{}}
+	nbClient, sbClient, libovsdbCleanup, err := libovsdbtest.NewNBSBTestHarness(dbSetup)
+	if err != nil {
+		t.Fatalf("Error creating libovsdb test harness: %v", err)
+	}
+	t.Cleanup(libovsdbCleanup.Cleanup)
+
+	controller, err := NewOvnController(
+		fakeClient,
+		f,
+		stopChan,
+		nil,
+		networkmanager.Default().Interface(),
+		nbClient,
+		sbClient,
+		fakeRecorder,
+		wg,
+		nil,
+		NewPortCache(stopChan),
+		nil,
+	)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	// addNode may return an error from later steps in this minimal setup; we only verify
+	// that the duplicate chassis-id path ran and emitted the expected event.
+	_, _ = controller.addNode(&node2)
+
+	select {
+	case event := <-fakeRecorder.Events:
+		gomega.Expect(event).To(gomega.ContainSubstring("DuplicateChassisID"))
+		gomega.Expect(event).To(gomega.ContainSubstring("Warning"))
+		gomega.Expect(event).To(gomega.ContainSubstring("node1"))
+	case <-time.After(2 * time.Second):
+		t.Fatal("Expected DuplicateChassisID Warning event on the recorder within 2s")
+	}
+}

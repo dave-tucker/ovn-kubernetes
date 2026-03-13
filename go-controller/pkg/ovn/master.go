@@ -147,6 +147,21 @@ func (oc *DefaultNetworkController) nodeGatewayConfig(node *corev1.Node) (*Gatew
 }
 
 func (oc *DefaultNetworkController) addNode(node *corev1.Node) ([]*net.IPNet, error) {
+	// Check that this node's OVS chassis-id is unique across the cluster.
+	if chassisID, err := util.ParseNodeChassisIDAnnotation(node); err == nil {
+		nodes, err := oc.watchFactory.GetNodes()
+		if err != nil {
+			klog.V(5).Infof("Skipping chassis-id uniqueness check for node %s: failed to list nodes: %v", node.Name, err)
+		} else {
+			otherNodeNames := util.OtherNodesWithSameChassisID(chassisID, node.Name, nodes)
+			if len(otherNodeNames) > 0 {
+				klog.Warningf("OVS chassis-id %q is not unique: node %q shares it with node(s) %v", chassisID, node.Name, otherNodeNames)
+				oc.recorder.Eventf(node, corev1.EventTypeWarning, "DuplicateChassisID",
+					"OVS chassis-id is not unique; also used by node(s): %v", otherNodeNames)
+			}
+		}
+	}
+
 	// Node subnet for the default network is allocated by cluster manager.
 	// Make sure that the node is allocated with the subnet before proceeding
 	// to create OVN Northbound resources.

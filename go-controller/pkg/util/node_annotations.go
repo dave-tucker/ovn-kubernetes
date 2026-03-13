@@ -387,6 +387,26 @@ func ParseNodeChassisIDAnnotation(node *corev1.Node) (string, error) {
 	return chassisID, nil
 }
 
+// OtherNodesWithSameChassisID returns the names of nodes (excluding currentNodeName) that have
+// the given chassisID in their OvnNodeChassisID annotation. Used by master and node to detect
+// duplicate OVS chassis-ids across the cluster.
+func OtherNodesWithSameChassisID(chassisID, currentNodeName string, nodes []*corev1.Node) []string {
+	var otherNames []string
+	for _, n := range nodes {
+		if n.Name == currentNodeName {
+			continue
+		}
+		cid, err := ParseNodeChassisIDAnnotation(n)
+		if err != nil {
+			continue
+		}
+		if cid == chassisID {
+			otherNames = append(otherNames, n.Name)
+		}
+	}
+	return otherNames
+}
+
 func NodeChassisIDAnnotationChanged(oldNode, newNode *corev1.Node) bool {
 	return oldNode.Annotations[OvnNodeChassisID] != newNode.Annotations[OvnNodeChassisID]
 }
