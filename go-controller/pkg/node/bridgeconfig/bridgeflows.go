@@ -110,6 +110,21 @@ func (b *BridgeConfiguration) flowsForDefaultBridge(extraIPs []net.IP) ([]string
 		if err != nil {
 			return nil, fmt.Errorf("unable to determine IPv4 physical IP of host: %v", err)
 		}
+
+		// Suppress inbound ARP broadcast requests from the physical uplink to prevent UDN gateway
+		// routers (which carry the node IP) from responding to ARP that should be handled by the
+		// kernel. Allowlist node-owned IPs and drop all other ARP broadcasts.
+		if ofPortPhys != "" {
+			nodeIPs := make([]net.IP, 0, 1+len(extraIPs))
+			nodeIPs = append(nodeIPs, physicalIP.IP)
+			for _, ip := range extraIPs {
+				if ip.To4() != nil {
+					nodeIPs = append(nodeIPs, ip)
+				}
+			}
+			dftFlows = append(dftFlows, b.suppressInboundARPBroadcastFlows(nodeIPs)...)
+		}
+
 		for _, netConfig := range b.patchedNetConfigs() {
 			// table 0, SVC Hairpin from OVN destined to local host, DNAT and go to table 4
 			dftFlows = append(dftFlows,
@@ -662,6 +677,25 @@ func generateIPFragmentReassemblyFlow(ofPortPhys string) []string {
 	return flows
 }
 
+// generateInboundARPAllowFlow returns a flow that allows ARP requests for a specific node-owned IP
+// arriving on the physical uplink to be handled by the kernel and the default network OVN pipeline.
+// UDN gateway routers carry the node IP but must not respond to these ARP requests.
+func generateInboundARPAllowFlow(ofPortPhys, defaultPatchPort string, ip net.IP, priority int) string {
+	return fmt.Sprintf("cookie=%s,table=0,priority=%d,in_port=%s,dl_dst=ff:ff:ff:ff:ff:ff,arp,arp_op=1,arp_tpa=%s,actions=output:LOCAL,output:%s",
+		nodetypes.DefaultOpenFlowCookie, priority, ofPortPhys, ip, defaultPatchPort)
+}
+
+// generateInboundARPCatchAllFlow returns a catch-all flow that redirects ARP broadcast requests
+// arriving on the physical uplink to only the default network patch port and the kernel.
+// This prevents UDN GR patch ports from receiving inbound ARP broadcasts, eliminating the
+// O(N) OVN pipeline resubmit storm those ARPs would otherwise cause.
+// Sending to LOCAL ensures the kernel can respond for IPs it owns (e.g. EgressIPs configured
+// as secondary addresses on breth0) even when not in the explicit allowlist above.
+func generateInboundARPCatchAllFlow(ofPortPhys, defaultPatchPort string, priority int) string {
+	return fmt.Sprintf("cookie=%s,table=0,priority=%d,in_port=%s,dl_dst=ff:ff:ff:ff:ff:ff,arp,arp_op=1,actions=output:LOCAL,output:%s",
+		nodetypes.DefaultOpenFlowCookie, priority, ofPortPhys, defaultPatchPort)
+}
+
 // generateGratuitousARPDropFlow returns a single flow to drop GARPs
 // Remove when https://issues.redhat.com/browse/FDP-1537 available
 func generateGratuitousARPDropFlow(inPort string, priority int) string {
@@ -1160,6 +1194,48 @@ func (b *BridgeConfiguration) dropGARPFlows() []string {
 	return flows
 }
 
+// suppressInboundARPBroadcastFlows generates OVS flows on the physical uplink port of br-ex to
+// prevent ARP broadcast requests from flooding into every UDN GR's OVN pipeline.
+//
+// Without these flows the default NORMAL action at priority 0 replicates every inbound ARP
+// broadcast to all patch ports in br-ex (one per UDN GR), triggering ~70 OVN pipeline resubmits
+// per UDN — hitting the 4096 OVS resubmit limit at ~53 UDNs.
+//
+// Two tiers of flows are installed:
+//   - priority 16: per known node IP — output:LOCAL,output:<defaultPatch>
+//     Delivers the ARP to the kernel (which responds for node-owned IPs) and to the default
+//     network's OVN GR (which has the ARP responder). Explicit allowlist avoids relying on
+//     the catch-all for the common case.
+//   - priority 15: catch-all — output:LOCAL,output:<defaultPatch>
+//     Redirects all other inbound ARP broadcasts away from UDN patch ports. LOCAL ensures the
+//     kernel can respond for IPs it owns that are not in the allowlist (e.g. EgressIPs
+//     configured as /32 secondary addresses on breth0 by the EgressIP node controller).
+//
+// ARP replies (arp_op=2) and unicast ARP are not affected.
+// bridgeConfiguration lock must be held by caller.
+func (b *BridgeConfiguration) suppressInboundARPBroadcastFlows(nodeIPs []net.IP) []string {
+	if !config.IPv4Mode || b.ofPortPhys == "" {
+		return nil
+	}
+	defaultNetConfig, found := b.netConfig[types.DefaultNetworkName]
+	if !found || defaultNetConfig.OfPortPatch == "" {
+		return nil
+	}
+	const (
+		allowPriority    = 16
+		catchAllPriority = 15
+	)
+	flows := make([]string, 0, len(nodeIPs)+1)
+	for _, ip := range nodeIPs {
+		if ip == nil || ip.IsUnspecified() || utilnet.IsIPv6(ip) {
+			continue
+		}
+		flows = append(flows, generateInboundARPAllowFlow(b.ofPortPhys, defaultNetConfig.OfPortPatch, ip, allowPriority))
+	}
+	flows = append(flows, generateInboundARPCatchAllFlow(b.ofPortPhys, defaultNetConfig.OfPortPatch, catchAllPriority))
+	return flows
+}
+
 // allowNodeIPGARPFlows generates the OVS flows to allow gratuitous ARPs for Node IP(s) for the cluster default network traffic only.
 // bridgeConfiguration lock must be held by caller.
 // Remove when https://issues.redhat.com/browse/FDP-1537 is available
@@ -1216,11 +1292,18 @@ func (b *BridgeConfiguration) arpFilterFlows(bridgeMacAddress string) []string {
 			fmt.Sprintf("cookie=%s, priority=12, table=0, in_port=%s, dl_src=%s, arp, arp_op=2, arp_spa=%s, "+
 				"actions=output:NORMAL",
 				nodetypes.DefaultOpenFlowCookie, defaultNetConfig.OfPortPatch, bridgeMacAddress, ip.IP))
-		// drop ARP replies for the node IP from all other patch ports
-		flows = append(flows,
-			fmt.Sprintf("cookie=%s, priority=11, table=0, dl_src=%s, arp, arp_op=2, arp_spa=%s, "+
-				"actions=drop",
-				nodetypes.DefaultOpenFlowCookie, bridgeMacAddress, ip.IP))
+		// drop ARP replies for the node IP from all non-default UDN patch ports.
+		// Without in_port scoping this would also drop ARP replies from LOCAL/host
+		// which carry the same bridge MAC.
+		for _, netConfig := range b.patchedNetConfigs() {
+			if netConfig.IsDefaultNetwork() {
+				continue
+			}
+			flows = append(flows,
+				fmt.Sprintf("cookie=%s, priority=11, table=0, in_port=%s, dl_src=%s, arp, arp_op=2, arp_spa=%s, "+
+					"actions=drop",
+					nodetypes.DefaultOpenFlowCookie, netConfig.OfPortPatch, bridgeMacAddress, ip.IP))
+		}
 	}
 	return flows
 }
