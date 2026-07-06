@@ -240,6 +240,9 @@ ovn_network_segmentation_enable=${OVN_NETWORK_SEGMENTATION_ENABLE:=false}
 ovn_network_connect_enable=${OVN_NETWORK_CONNECT_ENABLE:=false}
 #OVN_PRE_CONF_UDN_ADDR_ENABLE - enable connecting workloads with custom network configuration to UDNs
 ovn_pre_conf_udn_addr_enable=${OVN_PRE_CONF_UDN_ADDR_ENABLE:=false}
+
+#OVN_ENABLE_UDN_EDNS - inject EDNS0 Client Subnet into UDN pod DNS queries for per-UDN DNS isolation
+ovn_enable_udn_edns=${OVN_ENABLE_UDN_EDNS:=false}
 #OVN_ROUTE_ADVERTISEMENTS_ENABLE - enable route advertisements for ovn-kubernetes
 ovn_route_advertisements_enable=${OVN_ROUTE_ADVERTISEMENTS_ENABLE:=false}
 #OVN_EVPN_ENABLE - enable EVPN for ovn-kubernetes
@@ -1099,6 +1102,12 @@ ovnkube-controller() {
   fi
   echo "pre_conf_udn_addr_enable_flag=${pre_conf_udn_addr_enable_flag}"
 
+  udn_edns_flag=
+  if [[ ${ovn_enable_udn_edns} == "true" ]]; then
+	  udn_edns_flag="--enable-udn-edns"
+  fi
+  echo "udn_edns_flag=${udn_edns_flag}"
+
   dynamic_udn_allocation_flag=
   if [[ ${ovn_enable_dynamic_udn_allocation} == "true" ]]; then
     dynamic_udn_allocation_flag="--enable-dynamic-udn-allocation"
@@ -1240,6 +1249,7 @@ ovnkube-controller() {
     ${network_segmentation_enabled_flag} \
     ${network_connect_enabled_flag} \
     ${pre_conf_udn_addr_enable_flag} \
+    ${udn_edns_flag} \
     ${route_advertisements_enabled_flag} \
     ${evpn_enabled_flag} \
     ${advertised_udn_isolation_flag} \
@@ -1439,6 +1449,12 @@ ovnkube-controller-with-node() {
 	  pre_conf_udn_addr_enable_flag="--enable-preconfigured-udn-addresses"
   fi
   echo "pre_conf_udn_addr_enable_flag=${pre_conf_udn_addr_enable_flag}"
+
+  udn_edns_flag=
+  if [[ ${ovn_enable_udn_edns} == "true" ]]; then
+	  udn_edns_flag="--enable-udn-edns"
+  fi
+  echo "udn_edns_flag=${udn_edns_flag}"
 
   route_advertisements_enabled_flag=
   if [[ ${ovn_route_advertisements_enable} == "true" ]]; then
@@ -1760,6 +1776,7 @@ ovnkube-controller-with-node() {
     ${network_segmentation_enabled_flag} \
     ${network_connect_enabled_flag} \
     ${pre_conf_udn_addr_enable_flag} \
+    ${udn_edns_flag} \
     ${route_advertisements_enabled_flag} \
     ${evpn_enabled_flag} \
     ${advertised_udn_isolation_flag} \
@@ -2066,6 +2083,7 @@ ovn-cluster-manager() {
     ${network_segmentation_enabled_flag} \
     ${network_connect_enabled_flag} \
     ${pre_conf_udn_addr_enable_flag} \
+    ${udn_edns_flag} \
     ${route_advertisements_enabled_flag} \
     ${evpn_enabled_flag} \
     ${advertised_udn_isolation_flag} \

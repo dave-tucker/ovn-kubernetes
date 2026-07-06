@@ -728,6 +728,20 @@ func (*defaultPodRequestInterfaceOps) ConfigureInterface(pr *PodRequest, getter 
 		}
 	}
 
+	// If --enable-udn-edns is active and this is a primary UDN veth, attach the
+	// ECS-injection BPF program so outgoing DNS queries carry the pod's real
+	// UDN IP before OVN-K SNAT rewrites the source address.
+	//
+	// Failure is non-fatal: DNS still works, just without per-UDN isolation.
+	if ecsInjector != nil &&
+		ifInfo.NetName != types.DefaultNetworkName &&
+		ifInfo.PodAnnotation.Role == types.NetworkRolePrimary {
+		if attachErr := ecsInjector.Attach(hostIface.Name); attachErr != nil {
+			klog.Warningf("ECS inject: failed to attach to %q (pod %s/%s): %v",
+				hostIface.Name, pr.PodNamespace, pr.PodName, attachErr)
+		}
+	}
+
 	// Only configure IPv6 specific stuff and wait for addresses to become usable
 	// if there are any IPv6 addresses to assign. v4 doesn't have the concept
 	// of tentative addresses so it doesn't need any of this.

@@ -46,6 +46,7 @@ usage() {
     echo "       [ -nse | --network-segmentation-enable ]"
     echo "       [ -nce | --network-connect-enable ]"
     echo "       [ -uae | --preconfigured-udn-addresses-enable ]"
+    echo "       [ -uedns | --enable-udn-edns ]"
     echo "       [ -rae | --route-advertisements-enable ]"
     echo "       [ -evpn | --evpn-enable ]"
     echo "       [-dudn | --dynamic-udn-allocation]"
@@ -88,6 +89,7 @@ usage() {
     echo "-nse | --network-segmentation-enable          Enable network segmentation. DEFAULT: Disabled"
     echo "-nce | --network-connect-enable               Enable network connect (requires network segmentation). DEFAULT: Disabled"
     echo "-uae | --preconfigured-udn-addresses-enable   Enable connecting workloads with preconfigured network to user-defined networks. DEFAULT: Disabled"
+    echo "-uedns | --enable-udn-edns                    Enable EDNS0 Client Subnet injection for per-UDN DNS isolation. DEFAULT: Disabled"
     echo "-rae | --route-advertisements-enable          Enable route advertisements"
     echo "-evpn | --evpn-enable                         Enable EVPN"
     echo "-dudn | --dynamic-udn-allocation              Enable dynamic UDN allocation. DEFAULT: Disabled"
@@ -195,6 +197,8 @@ parse_args() {
             -nce | --network-connect-enable )     ENABLE_NETWORK_CONNECT=true
                                                   ;;
             -uae | --preconfigured-udn-addresses-enable)    ENABLE_PRE_CONF_UDN_ADDR=true
+                                                  ;;
+            -uedns | --enable-udn-edns )          ENABLE_UDN_EDNS=true
                                                   ;;
             -rae | --route-advertisements-enable) ENABLE_ROUTE_ADVERTISEMENTS=true
                                                   ;;
@@ -455,6 +459,7 @@ print_params() {
      echo "ENABLE_NETWORK_SEGMENTATION = $ENABLE_NETWORK_SEGMENTATION"
      echo "ENABLE_NETWORK_CONNECT = $ENABLE_NETWORK_CONNECT"
      echo "ENABLE_PRE_CONF_UDN_ADDR = $ENABLE_PRE_CONF_UDN_ADDR"
+     echo "ENABLE_UDN_EDNS = $ENABLE_UDN_EDNS"
      echo "ENABLE_ROUTE_ADVERTISEMENTS = $ENABLE_ROUTE_ADVERTISEMENTS"
      echo "ENABLE_EVPN = $ENABLE_EVPN"
      echo "ADVERTISE_DEFAULT_NETWORK = $ADVERTISE_DEFAULT_NETWORK"
@@ -594,6 +599,7 @@ helm upgrade --install ovn-kubernetes . -f "${value_file}" ${extra_values_args} 
           --set global.enableDynamicUDNAllocation=$(if [ "${DYNAMIC_UDN_ALLOCATION}" == "true" ]; then echo "true"; else echo "false"; fi) \
           $( [ -n "$DYNAMIC_UDN_GRACE_PERIOD" ] && echo "--set global.dynamicUDNGracePeriod=$DYNAMIC_UDN_GRACE_PERIOD" ) \
           --set global.enablePreconfiguredUDNAddresses=$(if [ "${ENABLE_PRE_CONF_UDN_ADDR}" == "true" ]; then echo "true"; else echo "false"; fi) \
+          --set global.enableUDNEdns=$(if [ "${ENABLE_UDN_EDNS}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableRouteAdvertisements=$(if [ "${ENABLE_ROUTE_ADVERTISEMENTS}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableEVPN=$(if [ "${ENABLE_EVPN}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.advertiseDefaultNetwork=$(if [ "${ADVERTISE_DEFAULT_NETWORK}" == "true" ]; then echo "true"; else echo "false"; fi) \

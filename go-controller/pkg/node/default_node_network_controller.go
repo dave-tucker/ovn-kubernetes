@@ -33,6 +33,7 @@ import (
 	honode "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/hybrid-overlay/pkg/controller"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/cni"
 	config "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/config"
+	nodeecs "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/node/ecs"
 	adminpolicybasedrouteclientset "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/crd/adminpolicybasedroute/v1/apis/clientset/versioned"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/informer"
@@ -133,7 +134,8 @@ type DefaultNodeNetworkController struct {
 
 	apbExternalRouteNodeController *apbroute.ExternalGatewayNodeController
 
-	cniServer *cni.Server
+	cniServer  *cni.Server
+	ecsManager *nodeecs.Manager // nil when --enable-udn-edns is not set
 
 	udnHostIsolationManager *UDNHostIsolationManager
 
@@ -873,6 +875,22 @@ func (nc *DefaultNodeNetworkController) Init(ctx context.Context) error {
 			return err
 		}
 		nc.cniServer = cniServer
+
+		// --enable-udn-edns: load the TC BPF ECS-injection program and
+		// register it with the CNI layer so it is attached to each primary
+		// UDN pod veth as pods are created.  The program injects the pod's
+		// real UDN IP as an EDNS0 Client Subnet option before OVN-K SNAT
+		// replaces the source address, enabling per-UDN DNS isolation in the
+		// ovn-kubernetes CoreDNS plugin.
+		if config.OVNKubernetesFeature.EnableUDNEdns {
+			m, bpfErr := nodeecs.New()
+			if bpfErr != nil {
+				klog.Warningf("ECS inject: BPF load failed, per-UDN DNS isolation disabled: %v", bpfErr)
+			} else {
+				cni.SetECSInjector(m)
+				nc.ecsManager = m
+			}
+		}
 	}
 
 	nodeAnnotator := kube.NewNodeAnnotator(nc.Kube, node.Name)
@@ -1199,6 +1217,11 @@ func (nc *DefaultNodeNetworkController) Stop() {
 	close(nc.stopChan)
 	nc.stopChan = nil
 	nc.wg.Wait()
+	if nc.ecsManager != nil {
+		if err := nc.ecsManager.Close(); err != nil {
+			klog.Warningf("ECS inject: error closing BPF manager: %v", err)
+		}
+	}
 }
 
 func (nc *DefaultNodeNetworkController) startEgressIPHealthCheckingServer(mgmtPort managementport.Interface) error {

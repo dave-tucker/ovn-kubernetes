@@ -527,6 +527,14 @@ type OVNKubernetesFeatureConfig struct {
 	EnableNetworkSegmentation       bool `gcfg:"enable-network-segmentation"`
 	EnableNetworkConnect            bool `gcfg:"enable-network-connect"`
 	EnablePreconfiguredUDNAddresses bool `gcfg:"enable-preconfigured-udn-addresses"`
+
+	// EnableUDNEdns enables the EDNS0 Client Subnet injection feature for UDN pods.
+	// When set, ovnkube-node attaches a TC BPF program to each UDN pod's veth
+	// interface that injects the pod's real UDN IP as an ECS option into outgoing
+	// DNS queries, preserving the address before OVN-K SNAT replaces it.
+	// The ovn-kubernetes CoreDNS plugin reads the ECS option to enforce per-UDN
+	// DNS isolation.
+	EnableUDNEdns bool `gcfg:"enable-udn-edns"`
 	EnableRouteAdvertisements       bool `gcfg:"enable-route-advertisements"`
 	EnableEVPN                      bool `gcfg:"enable-evpn"`
 	EnableMultiNetworkPolicy        bool `gcfg:"enable-multi-networkpolicy"`
@@ -1281,6 +1289,16 @@ var OVNK8sFeatureFlags = []cli.Flag{
 		Usage:       "Enable workloads connect to user-defined network with preconfigured addresses.",
 		Destination: &cliConfig.OVNKubernetesFeature.EnablePreconfiguredUDNAddresses,
 		Value:       OVNKubernetesFeature.EnablePreconfiguredUDNAddresses,
+	},
+	&cli.BoolFlag{
+		Name: "enable-udn-edns",
+		Usage: "Attach a TC BPF program to UDN pod veth interfaces that injects an EDNS0 " +
+			"Client Subnet (ECS) option carrying the pod's real UDN IP into outgoing DNS " +
+			"queries, before OVN-K SNAT rewrites the source. The ovn-kubernetes CoreDNS " +
+			"plugin reads ECS to enforce per-UDN DNS isolation. Requires kernel 6.6+ for " +
+			"TCX links; falls back to cls_bpf on older kernels. Requires enable-network-segmentation.",
+		Destination: &cliConfig.OVNKubernetesFeature.EnableUDNEdns,
+		Value:       OVNKubernetesFeature.EnableUDNEdns,
 	},
 	&cli.BoolFlag{
 		Name:        "enable-route-advertisements",
