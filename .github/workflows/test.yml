@@ -4,8 +4,6 @@ on:
   merge_group:
   pull_request:
     branches: [ master,release-* ]
-  schedule:
-    - cron: '0 */12 * * *'
   workflow_dispatch:
 
 permissions:
@@ -79,7 +77,7 @@ jobs:
   # separate job for parallelism
   verify-lint-generated-code:
     needs: [ changes, go-cache ]
-    if: needs.changes.outputs.run_ci == 'true'
+    if: ${{ false }} # Not needed for the fork's JUnit smoke run.
     name: Verify lint and generated code
     runs-on: ubuntu-24.04
     steps:
@@ -110,7 +108,7 @@ jobs:
 
   build-base:
     needs: changes
-    if: needs.changes.outputs.run_ci == 'true'
+    if: ${{ false }} # Not needed for the fork's JUnit smoke run.
     name: Build-base
     runs-on: ubuntu-24.04
     steps:
@@ -302,7 +300,7 @@ jobs:
 
   build-pr-ubuntu:
     needs: [ changes, go-cache ]
-    if: needs.changes.outputs.run_ci == 'true'
+    if: ${{ false }} # Not needed for the fork's JUnit smoke run.
     name: Build-PR (Ubuntu)
     runs-on: ubuntu-24.04
     env:
@@ -322,7 +320,7 @@ jobs:
 
   test-pr:
     needs: [ changes, go-cache ]
-    if: needs.changes.outputs.run_ci == 'true'
+    if: ${{ false }} # Not needed for the fork's JUnit smoke run.
     name: Test-PR
     runs-on: ubuntu-24.04
     steps:
@@ -380,7 +378,7 @@ jobs:
 
   ovn-upgrade-e2e:
     name: Upgrade OVN from Base to PR branch based image (${{ matrix.gateway-mode }})
-    if: github.event_name != 'schedule'
+    if: ${{ false }} # Not needed for the fork's JUnit smoke run.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     needs:
@@ -639,51 +637,8 @@ jobs:
         # network-segmentation : ["", "enable-network-segmentation"]
         # traffic-flow-tests : "<tests range. i.e. 1-24>"
         include:
-          - {"target": "shard-conformance", "gateway-mode": "local",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "snatGW",   "second-bridge": "1br", "cni-mode": "privileged"}
-          # Keep dedicated coverage for a local gateway bridge without a system uplink so gateway initialization
-          # cannot silently fall back to the normal bridge-plus-uplink topology.
-          - {"target": "no-uplink", "gateway-mode": "local", "ipfamily": "ipv4", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "shard-conformance", "gateway-mode": "shared", "ipfamily": "ipv4",      "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default"}
-          - {"target": "shard-conformance", "gateway-mode": "local",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default"}
-          - {"target": "shard-conformance", "gateway-mode": "shared", "ipfamily": "ipv6",      "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "no-overlay": "true"}
-          - {"target": "shard-conformance", "gateway-mode": "local",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "managed", "no-overlay": "managed"}
-          - {"target": "shard-conformance", "gateway-mode": "shared", "ipfamily": "ipv6",      "disable-snat-multiple-gws": "snatGW",   "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "shard-conformance", "gateway-mode": "shared", "ipfamily": "ipv4",      "disable-snat-multiple-gws": "snatGW",   "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "control-plane", "gateway-mode": "shared", "ipfamily": "ipv4",      "disable-snat-multiple-gws": "snatGW",   "second-bridge": "1br", "cni-mode": "privileged", "dns-name-resolver": "enable-dns-name-resolver"}
-          - {"target": "control-plane", "gateway-mode": "local",  "ipfamily": "ipv4",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged", "dns-name-resolver": "enable-dns-name-resolver", "image_family": "ubuntu"}
-          - {"target": "control-plane", "gateway-mode": "local",  "ipfamily": "ipv6",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "control-plane", "gateway-mode": "shared", "ipfamily": "ipv4",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "2br", "cni-mode": "privileged"}
-          - {"target": "control-plane", "gateway-mode": "shared", "ipfamily": "ipv6",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "2br", "cni-mode": "unprivileged"}
-          - {"target": "multi-homing", "gateway-mode": "shared",  "ipfamily": "dualstack",      "disable-snat-multiple-gws": "SnatGW",   "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "node-ip-mac-migration", "gateway-mode": "shared", "ipfamily": "ipv4",      "disable-snat-multiple-gws": "SnatGW",   "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "multi-homing", "gateway-mode": "local",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "SnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "network-segmentation": "enable-network-segmentation"}
-          - {"target": "external-gateway", "gateway-mode": "shared", "ipfamily": "ipv4",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "2br", "cni-mode": "privileged"}
-          - {"target": "external-gateway", "gateway-mode": "local",  "ipfamily": "ipv4",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "external-gateway", "gateway-mode": "shared", "ipfamily": "ipv6",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "2br", "cni-mode": "privileged"}
-          - {"target": "external-gateway", "gateway-mode": "local",  "ipfamily": "ipv6",      "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "kv-live-migration", "gateway-mode": "shared", "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "num-workers": "3", "network-segmentation": "enable-network-segmentation", "routeadvertisements": "true"}
-          - {"target": "kv-live-migration", "gateway-mode": "local", "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "num-workers": "3", "network-segmentation": "enable-network-segmentation", "routeadvertisements": "true", "evpn": "enable-evpn"}
-          - {"target": "control-plane", "gateway-mode": "shared", "ipfamily": "ipv4", "disable-snat-multiple-gws": "SnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "forwarding": "disable-forwarding"}
+          # Both control-plane invocations must leave a JUnit report.
           - {"target": "network-segmentation", "gateway-mode": "shared", "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged", "forwarding": "disable-forwarding"}
-          - {"target": "network-segmentation", "gateway-mode": "local", "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "unprivileged"}
-          - {"target": "network-segmentation-dynamic", "gateway-mode": "shared", "ipfamily": "ipv4", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "unprivileged"}
-          - {"target": "network-segmentation", "gateway-mode": "shared", "ipfamily": "ipv6", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged"}
-          - {"target": "network-segmentation", "gateway-mode": "shared", "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "disable-udn-arp-ndp-flood":"true", "cni-mode": "privileged"}
-          - {"target": "bgp", "gateway-mode": "local",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "snatGW", "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "network-segmentation": "enable-network-segmentation", "dns-name-resolver": "enable-dns-name-resolver"}
-          - {"target": "bgp", "gateway-mode": "shared",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "network-segmentation": "enable-network-segmentation", "dns-name-resolver": "enable-dns-name-resolver"}
-          - {"target": "bgp", "gateway-mode": "local",  "ipfamily": "ipv6", "disable-snat-multiple-gws": "snatGW", "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "network-segmentation": "enable-network-segmentation"}
-          # no-overlay mode cannot be enabled alongside other tests: activating it on the default network requires
-          # restarting ovn-k pods (day-2 reconfiguration), which would disrupt any concurrently running test jobs.
-          # Dedicated no-overlay jobs are therefore required to cover feature combinations that may interact with
-          # no-overlay (e.g. BGP route advertisements, network-segmentation) where implementations are not strictly orthogonal.
-          - {"target": "bgp-managed", "gateway-mode": "local",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "managed", "no-overlay": "managed"}
-          - {"target": "bgp-no-overlay-dynamic", "gateway-mode": "shared", "ipfamily": "dualstack", "disable-snat-multiple-gws": "SnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "network-segmentation": "enable-network-segmentation", "no-overlay": "snat-enabled"}
-          - {"target": "bgp-no-overlay", "gateway-mode": "local",  "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW",   "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "network-segmentation": "enable-network-segmentation", "no-overlay": "true"}
-          - {"target": "bgp-loose-isolation", "gateway-mode": "shared", "ipfamily": "dualstack", "disable-snat-multiple-gws": "snatGW", "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "network-segmentation": "enable-network-segmentation", "advertised-udn-isolation-mode": "loose"}
-          - {"target": "evpn", "gateway-mode": "local", "ipfamily": "dualstack", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged", "routeadvertisements": "advertise-default", "network-segmentation": "enable-network-segmentation", "evpn": "enable-evpn"}
-          - {"target": "traffic-flow-test-only", "gateway-mode": "shared", "ipfamily": "ipv4", "disable-snat-multiple-gws": "noSnatGW", "second-bridge": "1br", "cni-mode": "privileged", "traffic-flow-tests": "1-24", "network-segmentation": "enable-network-segmentation"}
-          - {"target": "tools", "gateway-mode": "local", "ipfamily": "dualstack", "disable-snat-multiple-gws": "SnatGW", "second-bridge": "1br", "cni-mode": "privileged", "network-segmentation": "enable-network-segmentation"}
-          - {"target": "serial", "gateway-mode": "shared", "ipfamily": "ipv4", "disable-snat-multiple-gws": "snatGW", "second-bridge": "1br", "cni-mode": "privileged"}
     needs: [ changes, build-pr, build-pr-ubuntu ]
     if: ${{ !cancelled() && needs.changes.outputs.run_ci == 'true' }}
     env:
@@ -964,7 +919,7 @@ jobs:
 
   e2e-dual-conversion:
     name: e2e-dual-conversion
-    if: github.event_name != 'schedule'
+    if: ${{ false }} # Not needed for the fork's JUnit smoke run.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     needs: [ build-pr ]

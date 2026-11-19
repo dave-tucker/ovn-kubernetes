@@ -1,7 +1,6 @@
 name: 'Close stale Issues and Warn stale PRs'
 on:
-  schedule:
-    - cron: '30 1 * * *'
+  workflow_dispatch:
 
 permissions:
   issues: write
